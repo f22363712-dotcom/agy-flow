@@ -321,24 +321,33 @@ def init_project(args):
     if not worktrees_dir.is_absolute():
         worktrees_dir = (PROJECT_ROOT / worktrees_dir).resolve()
 
-    # If worktrees directory is relative or inside the current folder, ignore
-    # it
+    # Setup .gitignore rules
+    gitignore = PROJECT_ROOT / ".gitignore"
+    new_ignores = [".agents/current_task.json", "__pycache__/", "*.pyc"]
     try:
         rel_path = worktrees_dir.relative_to(PROJECT_ROOT)
-        gitignore = PROJECT_ROOT / ".gitignore"
-        ignore_str = f"\n{rel_path}/\n"
-        if gitignore.exists():
-            content = gitignore.read_text(encoding="utf-8")
-            if str(rel_path) not in content:
-                with open(gitignore, "a", encoding="utf-8") as f:
-                    f.write(ignore_str)
-                print(f"Added worktrees dir to .gitignore")
-        else:
-            gitignore.write_text(ignore_str, encoding="utf-8")
-            print(f"Created .gitignore and added worktrees dir")
+        new_ignores.append(f"{rel_path}/")
     except ValueError:
-        # worktrees_dir is external, no need to ignore
         pass
+
+    ignore_content = ""
+    if gitignore.exists():
+        ignore_content = gitignore.read_text(encoding="utf-8")
+
+    appends = []
+    for ig in new_ignores:
+        if ig not in ignore_content:
+            appends.append(ig)
+
+    if appends:
+        with open(gitignore, "a" if gitignore.exists() else "w", encoding="utf-8") as f:
+            if gitignore.exists() and not ignore_content.endswith("\n"):
+                f.write("\n")
+            for ig in appends:
+                f.write(f"{ig}\n")
+        print(f"Updated .gitignore with rules: {', '.join(appends)}")
+    else:
+        print(".gitignore is already up-to-date.")
 
     print("Initialization completed successfully.")
 
@@ -529,6 +538,23 @@ Assigned Agent: {agent}
         guide_file_path.write_text(guide_content, encoding="utf-8")
         print(f"Injected guidance file at {guide_file_path}")
 
+    # Write .agents/current_task.json inside the worktree for agent enforcement
+    current_task_path = worktree_path / ".agents" / "current_task.json"
+    current_task_path.parent.mkdir(parents=True, exist_ok=True)
+    task_metadata = {
+        "task_id": task_id,
+        "title": task["title"],
+        "agent": agent,
+        "status": "In Progress",
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    try:
+        with open(current_task_path, "w", encoding="utf-8") as f:
+            json.dump(task_metadata, f, indent=4)
+        print(f"Created task metadata file for routing enforcement: {current_task_path}")
+    except Exception as e:
+        print(f"Warning: Failed to create current_task.json: {e}")
+
     # 4. Git Commit the board updates in main
     run_cmd(["git", "add", str(BOARD_FILE.relative_to(PROJECT_ROOT))])
     run_cmd(["git", "commit", "-m", f"chore(task): start {task_id} - setup worktree"])
@@ -680,6 +706,15 @@ def submit_task(args):
                         guide_path.unlink()
                     except Exception as e:
                         print(f"Warning: Failed to delete {guide_file}: {e}")
+
+    # Also delete current_task.json to clean up worktree
+    current_task_path = worktree_path / ".agents" / "current_task.json"
+    if current_task_path.exists():
+        print("Removing temporary current_task.json file...")
+        try:
+            current_task_path.unlink()
+        except Exception as e:
+            print(f"Warning: Failed to delete current_task.json: {e}")
 
     # 2. Git commit in worktree
     print("Staging and committing worktree changes...")
