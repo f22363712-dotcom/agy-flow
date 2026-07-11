@@ -47,8 +47,8 @@ test_cases = [
     ),
     ("优化后端查询性能", "claude", "优化(man=1)=后端(logic=1)→平局归Claude"),
     ("迁移旧系统数据库", "claude", "迁移(man=1)=数据库(logic=1)→平局归Claude"),
-    ("API 和 UI 都有", "claude", "API(1)=UI(1)→平局归Claude"),
-    ("UI 和 API 调试", "claude", "三方平局→默认归Claude"),
+    ("API 和 UI 都有", "claude -> antigravity", "API(1)=UI(1)→含有“和”→协同流水线"),
+    ("UI 和 API 调试", "claude -> antigravity", "三方平局→含有“和”→协同流水线"),
     # ===== UI 严格胜出的混合场景 =====
     (
         "修复前端页面布局Bug",

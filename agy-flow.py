@@ -443,7 +443,8 @@ def start_task(args):
     if task["status"] == "Done":
         print(f"Warning: Task '{task_id}' is already Done.")
 
-    agent = task["agent"]
+    pipeline = [a.strip() for a in task["agent"].split("->")]
+    agent = pipeline[0]
     branch_name = f"agent/{task_id}"
 
     worktree_parent = Path(config["worktrees_dir"])
@@ -686,19 +687,111 @@ def submit_task(args):
     print("Estimating token usage and costs for this task run...")
     estimate_and_log_cost(task_id, task["agent"], worktree_path=worktree_path)
 
+    # Parse pipeline and active agent
+    agent_field = task["agent"]
+    pipeline = [a.strip() for a in agent_field.split("->")]
+    active_agent = pipeline[0]
+    current_task_path = worktree_path / ".agents" / "current_task.json"
+
+    if current_task_path.exists():
+        try:
+            with open(current_task_path, "r", encoding="utf-8") as f:
+                task_meta = json.load(f)
+                active_agent = task_meta.get("agent", active_agent)
+        except Exception:
+            pass
+
+    has_next = False
+    next_agent = None
+    if len(pipeline) > 1 and active_agent in pipeline:
+        idx = pipeline.index(active_agent)
+        if idx + 1 < len(pipeline):
+            has_next = True
+            next_agent = pipeline[idx + 1]
+
+    if has_next:
+        print(f"🔄 Detected next agent in pipeline: {next_agent}. Performing handover...")
+
+        # 1. Update current_task.json to next agent
+        if current_task_path.exists():
+            try:
+                task_meta["agent"] = next_agent
+                task_meta["timestamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                with open(current_task_path, "w", encoding="utf-8") as f:
+                    json.dump(task_meta, f, indent=4)
+            except Exception as e:
+                print(f"Warning: Failed to update current_task.json: {e}")
+
+        # 2. Write guide file for the next agent
+        next_agent_info = config.get("agents", {}).get(next_agent, {})
+        next_guide_file = next_agent_info.get("guide_file")
+        if next_guide_file:
+            next_guide_path = worktree_path / next_guide_file
+            next_guide_path.parent.mkdir(parents=True, exist_ok=True)
+            task_file = TASKS_DIR / f"{task_id}.md"
+            task_spec = task_file.read_text(encoding="utf-8") if task_file.exists() else f"Task ID: {task_id}\nTitle: {task['title']}"
+            next_guide_content = f"""# AGENT MISSION GUIDANCE (HANDOVER)
+You are taking over task: {task_id} (Handed over to {next_agent} from {active_agent})
+Title: {task["title"]}
+Assigned Agent: {next_agent}
+
+## Task Details
+{task_spec}
+
+## Instructions
+1. Please complete the requirements listed above. Ensure code compiles and all unit tests pass.
+2. AUTOMATED SUBMISSION: When you are finished and everything is verified, you MUST execute the following command:
+   agy-flow submit {task_id}
+"""
+            try:
+                next_guide_path.write_text(next_guide_content, encoding="utf-8")
+                print(f"Injected guidance file for next agent at {next_guide_path}")
+            except Exception as e:
+                print(f"Warning: Failed to write guidance file: {e}")
+
+        # 3. Stage and commit in worktree (keep current_task.json and guide file for the next agent)
+        print("Staging and committing worktree changes for handover...")
+        run_cmd(["git", "add", "."], cwd=str(worktree_path))
+        run_cmd(["git", "commit", "-m", f"chore(task): handover task-{task_id} from {active_agent} to {next_agent}"], cwd=str(worktree_path))
+
+        # 4. Update board in main repo
+        next_status = f"In Progress ({next_agent})"
+        update_board_row(task_id, next_status)
+        run_cmd(["git", "add", str(BOARD_FILE.relative_to(PROJECT_ROOT))])
+        run_cmd(["git", "commit", "-m", f"chore(task): transition {task_id} status to {next_agent}"])
+
+        print("\n" + "=" * 80)
+        print(f"🔄 AGENT PIPELINE TRANSITION SUCCESSFUL!")
+        print(f"Task: {task_id} - {task['title']}")
+        print(f"Transition: {active_agent} ➡️ {next_agent}")
+        print(f"Status Updated: {next_status}")
+        print("=" * 80)
+
+        # Auto-launch VS Code if next agent is Codex
+        if next_agent == "codex":
+            print("Launching VS Code workspace for Codex manual developer flow...")
+            try:
+                subprocess.Popen(["code", str(worktree_path)], shell=True)
+            except Exception as e:
+                print(f"Warning: Failed to automatically launch VS Code: {e}")
+        elif next_agent == "antigravity":
+            print(f"👉 Please instruct Antigravity in your chat window to take over task-{task_id}!")
+        print("=" * 80 + "\n")
+        return
+
+    # --- Otherwise, this is the end of the pipeline. Execute normal cleanup and submission ---
+    print("No further agents in pipeline. Finalizing task submission...")
+
     # Revert or delete guide files so they do not contaminate the task commits
     print("Cleaning up task-specific guidance files before commit...")
     for agent_name, info in config.get("agents", {}).items():
         guide_file = info.get("guide_file")
         if guide_file:
-            # Check if file is tracked in HEAD
             code, stdout, stderr = run_cmd(["git", "ls-files", "--error-unmatch", guide_file], cwd=str(worktree_path))
             if code == 0:
-                # File is tracked, restore it to HEAD version
                 print(f"Restoring tracked guide file to HEAD: {guide_file}")
                 run_cmd(["git", "checkout", "HEAD", "--", guide_file], cwd=str(worktree_path))
             else:
-                # File is untracked, delete it to prevent staging
                 guide_path = worktree_path / guide_file
                 if guide_path.exists():
                     print(f"Removing untracked guide file: {guide_file}")

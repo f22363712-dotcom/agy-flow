@@ -179,7 +179,18 @@ def classify_task(title: str) -> str:
         f"UI评分={ui_score}, 逻辑评分={logic_score}, 手动评分={manual_score}"
     )
 
-    # 评分最高的 Agent 胜出（严格大于才路由；平局或全 0 默认归 Claude）
+    # 协同流水线规则：如果匹配到多个类别，且含有明确的“并/和/然后/and”等接力词
+    has_coordination = any(w in title_lower for w in ["和", "并", "且", "然后", "接着", "and", "then"])
+
+    if has_coordination:
+        if logic_score >= 1 and ui_score >= 1:
+            return "claude -> antigravity"
+        elif logic_score >= 1 and manual_score >= 1:
+            return "claude -> codex"
+        elif ui_score >= 1 and manual_score >= 1:
+            return "codex -> antigravity"
+
+    # 单一 Agent 回退规则
     if manual_score > ui_score and manual_score > logic_score:
         return "codex"
     elif ui_score > logic_score and ui_score > manual_score:
