@@ -1,0 +1,19 @@
+{
+    "total_budget": 10.0,
+    "tasks": {
+        "task-001": {
+            "agent": "claude",
+            "input_tokens": 150000,
+            "output_tokens": 20000,
+            "cost": 0.0266,
+            "timestamp": "2026-07-11 17:54:21"
+        },
+        "task-003": {
+            "agent": "antigravity",
+            "input_tokens": 45000,
+            "output_tokens": 3000,
+            "cost": 0.004275,
+            "timestamp": "2026-07-11 17:54:29"
+        }
+    }
+}
