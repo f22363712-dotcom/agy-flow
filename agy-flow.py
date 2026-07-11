@@ -478,6 +478,16 @@ def start_task(args):
         print(f"Error adding worktree: {stderr}")
         sys.exit(1)
 
+    # Copy .env configuration file if it exists in the main repository
+    env_file = PROJECT_ROOT / ".env"
+    if env_file.exists():
+        import shutil
+        try:
+            shutil.copy(env_file, worktree_path / ".env")
+            print("Copied .env configuration file to worktree.")
+        except Exception as e:
+            print(f"Warning: Failed to copy .env file: {e}")
+
     # 2. Update board.md
     update_board_row(
         task_id, "In Progress", branch=branch_name, worktree=str(worktree_path)
