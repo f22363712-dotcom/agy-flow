@@ -17,7 +17,8 @@
             "guide_file": ".agents/AGENTS.md"
         },
         "codex": {
-            "interactive": true
+            "interactive": true,
+            "guide_file": "CODEX.md"
         }
     }
 }
