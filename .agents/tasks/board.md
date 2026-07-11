@@ -7,3 +7,4 @@
 | task-003 | Visual walk-through and layout check | antigravity | Done | agent/task-003 | D:\multi_agent_worktrees\task-003 |
 | task-004 | 设计一个用户登录界面 | claude | Todo | | |
 | task-005 | 实现后端用户认证API | claude | Todo | | |
+| task-006 | 手动调试数据库连接超时问题 | codex | Todo | | |
