@@ -15,4 +15,4 @@
 | task-011 | API Gateway Integration Test Task | codex | Todo | | |
 | task-012 | API Gateway Integration Test Task | codex | Todo | | |
 | task-013 | 心动积分：测试项目完善体验 | claude | Todo | | |
-| task-014 | 自动化分发社媒内容工作流：完善数据复盘与视频分发 | claude | Todo | | |
+| task-014 | 自动化分发社媒内容工作流：完善数据复盘与视频分发 | claude | In Progress | agent/task-014 | D:\multi_agent_worktrees\task-014 |
