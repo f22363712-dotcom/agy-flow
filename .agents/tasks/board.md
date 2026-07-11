@@ -10,4 +10,4 @@
 | task-006 | 手动调试数据库连接超时问题 | codex | Todo | | |
 | task-007 | 设计一个用户登录界面 | antigravity | Todo | | |
 | task-008 | 修复登录页面的 Bug | antigravity | Todo | | |
-| task-009 | 编写后端登录验证接口，设计前端 HTML 登录框并进行页面视觉走查 | claude -> antigravity | In Progress | agent/task-009 | D:\multi_agent_worktrees\task-009 |
+| task-009 | 编写后端登录验证接口，设计前端 HTML 登录框并进行页面视觉走查 | claude -> antigravity | Review | agent/task-009 | D:\multi_agent_worktrees\task-009 |
