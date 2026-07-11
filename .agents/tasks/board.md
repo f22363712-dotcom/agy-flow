@@ -14,3 +14,4 @@
 | task-010 | 手动微调登录页面的交互样式 | codex | In Progress | agent/task-010 | D:\multi_agent_worktrees\task-010 |
 | task-011 | API Gateway Integration Test Task | codex | Todo | | |
 | task-012 | API Gateway Integration Test Task | codex | Todo | | |
+| task-013 | 心动积分：测试项目完善体验 | claude | Todo | | |
