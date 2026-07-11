@@ -656,6 +656,7 @@ def status_tasks(args):
 def submit_task(args):
     """Submits the task worktree changes by running tests and committing."""
     check_inside_project("submit")
+    config = get_config()
     task_id = args.task_id
     test_cmd = args.test_cmd
 
