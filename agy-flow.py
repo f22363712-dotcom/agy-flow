@@ -660,6 +660,27 @@ def submit_task(args):
     print("Estimating token usage and costs for this task run...")
     estimate_and_log_cost(task_id, task["agent"], worktree_path=worktree_path)
 
+    # Revert or delete guide files so they do not contaminate the task commits
+    print("Cleaning up task-specific guidance files before commit...")
+    for agent_name, info in config.get("agents", {}).items():
+        guide_file = info.get("guide_file")
+        if guide_file:
+            # Check if file is tracked in HEAD
+            code, stdout, stderr = run_cmd(["git", "ls-files", "--error-unmatch", guide_file], cwd=str(worktree_path))
+            if code == 0:
+                # File is tracked, restore it to HEAD version
+                print(f"Restoring tracked guide file to HEAD: {guide_file}")
+                run_cmd(["git", "checkout", "HEAD", "--", guide_file], cwd=str(worktree_path))
+            else:
+                # File is untracked, delete it to prevent staging
+                guide_path = worktree_path / guide_file
+                if guide_path.exists():
+                    print(f"Removing untracked guide file: {guide_file}")
+                    try:
+                        guide_path.unlink()
+                    except Exception as e:
+                        print(f"Warning: Failed to delete {guide_file}: {e}")
+
     # 2. Git commit in worktree
     print("Staging and committing worktree changes...")
     run_cmd(["git", "add", "."], cwd=str(worktree_path))

@@ -1,24 +1,16 @@
-# AGENT MISSION GUIDANCE
-You are working on task: task-003
-Title: Visual walk-through and layout check
-Assigned Agent: antigravity
+# Antigravity Global Project Guide
 
-## Task Details
-# Task: task-003 - Visual walk-through and layout check
+Welcome! This is the global project-wide guide for Google Antigravity.
 
-## Metadata
-- **ID**: task-003
-- **Title**: Visual walk-through and layout check
-- **Assigned Agent**: antigravity
-- **Status**: Todo
-- **Created Time**: 2026-07-10 23:32:30
+## Project Context
+*   **Project Name**: multi_agent_collaboration
+*   **Active Directory**: D:\multi_agent_collaboration
+*   **Tech Stack**: Python 3.x, Git-Native workflow, Command-line scripts.
 
-## Requirements & Spec
-*Describe the functional requirements and technical specifications for this task here.*
+## Core Rules & Standards
+1.  **Always respect the task board**: Check `.agents/tasks/board.md` for task statuses.
+2.  **Verify before commit**: Always run tests (e.g. `python test_classify_task.py`) before submitting task branches.
+3.  **Cost Awareness**: Be conscious of Token budgets. Log estimated/actual costs using `agy-flow cost log <task-id>`.
 
-## Acceptance Criteria
-*List the test cases or verification steps that must pass.*
-
-
-## Instructions
-Please complete the requirements listed above. Ensure code compiles and all unit tests pass before finishing.
+## Task Guidance
+When a task is started, the CLI tool generates task-specific details. Please read the task specification in the temporary guidance or task file if provided.
