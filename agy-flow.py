@@ -365,9 +365,11 @@ def create_task(args):
     else:
         agent = args.agent.lower()
 
-    if agent not in config["agents"]:
-        print(f"Error: Agent '{agent}' is not defined in config.json")
-        sys.exit(1)
+    agents_in_pipeline = [a.strip() for a in agent.split("->")]
+    for a in agents_in_pipeline:
+        if a not in config["agents"]:
+            print(f"Error: Agent '{a}' in pipeline '{agent}' is not defined in config.json")
+            sys.exit(1)
 
     # Determine new task ID
     existing_tasks = parse_board_rows()
