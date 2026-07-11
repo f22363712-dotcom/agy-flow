@@ -13,3 +13,4 @@
 | task-009 | 编写后端登录验证接口，设计前端 HTML 登录框并进行页面视觉走查 | claude -> antigravity | Review | agent/task-009 | D:\multi_agent_worktrees\task-009 |
 | task-010 | 手动微调登录页面的交互样式 | codex | In Progress | agent/task-010 | D:\multi_agent_worktrees\task-010 |
 | task-011 | API Gateway Integration Test Task | codex | Todo | | |
+| task-012 | API Gateway Integration Test Task | codex | Todo | | |

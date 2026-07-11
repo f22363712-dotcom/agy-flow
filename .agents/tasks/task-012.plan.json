@@ -1,0 +1,86 @@
+{
+    "title": "API Gateway Integration Test Task",
+    "task_type": "logic_or_backend",
+    "confidence": 0.84,
+    "scores": {
+        "ui": 0,
+        "logic": 2,
+        "manual": 0
+    },
+    "legacy_agent": "claude",
+    "recommended_pipeline": [
+        {
+            "agent": "claude",
+            "role": "implementer",
+            "purpose": "logic-heavy coding, tests, and CLI execution"
+        },
+        {
+            "agent": "deepseek",
+            "role": "reviewer",
+            "purpose": "low-cost diff review before final handoff"
+        }
+    ],
+    "policy": {
+        "strategy": "cheap-first, escalate-on-uncertainty",
+        "requires_worktree": true,
+        "budget_bias": "subscription_or_low_metered"
+    },
+    "agent_registry": {
+        "claude": {
+            "display_name": "Claude Code",
+            "kind": "cli_agent",
+            "entry": "claude",
+            "capabilities": [
+                "code_edit",
+                "logic",
+                "test",
+                "refactor"
+            ],
+            "cost_mode": "metered"
+        },
+        "antigravity": {
+            "display_name": "Antigravity",
+            "kind": "desktop_agent",
+            "entry": "antigravity",
+            "capabilities": [
+                "vision",
+                "browser",
+                "ui_review",
+                "large_context"
+            ],
+            "cost_mode": "subscription"
+        },
+        "codex": {
+            "display_name": "Codex",
+            "kind": "human_in_loop",
+            "entry": "vscode",
+            "capabilities": [
+                "code_edit",
+                "debug",
+                "review",
+                "manual_tuning"
+            ],
+            "cost_mode": "subscription"
+        },
+        "deepseek": {
+            "display_name": "DeepSeek",
+            "kind": "llm_api",
+            "entry": "litellm",
+            "base_url": "https://api.deepseek.com/v1",
+            "model": "deepseek-chat",
+            "api_key_env": "DEEPSEEK_API_KEY",
+            "capabilities": [
+                "cheap_analysis",
+                "planning",
+                "review",
+                "classification"
+            ],
+            "cost_mode": "metered_low"
+        }
+    },
+    "selection_source": "manual",
+    "manual_override": true,
+    "selected_agent": "codex",
+    "task_id": "task-012",
+    "created_time": "2026-07-11 23:55:51"
+}
