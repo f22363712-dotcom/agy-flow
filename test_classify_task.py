@@ -1,8 +1,10 @@
 """测试 classify_task 智能路由的测试脚本。"""
 
-from agy_flow_classify import classify_task
+import json
 import sys
 from pathlib import Path
+
+from agy_flow_classify import classify_task, plan_task
 
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -78,6 +80,59 @@ for title, expected, desc in test_cases:
 
 print("\n" + "=" * 60)
 print(f"结果: {passed} 通过, {failed} 失败, 共 {passed + failed} 个测试")
+print("=" * 60)
+
+plan_cases = [
+    (
+        "编写后端登录验证接口，设计前端 HTML 登录框并进行页面视觉走查",
+        "full_stack_or_ui_integrated",
+        ["deepseek", "claude", "antigravity"],
+    ),
+    (
+        "手动调试数据库连接问题",
+        "debug_or_manual_tuning",
+        ["codex", "deepseek"],
+    ),
+]
+
+for title, expected_type, expected_agents in plan_cases:
+    plan = plan_task(title)
+    json.dumps(plan, ensure_ascii=False)
+    actual_agents = [step["agent"] for step in plan["recommended_pipeline"]]
+    if (
+        plan["task_type"] == expected_type
+        and actual_agents == expected_agents
+        and plan["policy"]["strategy"] == "cheap-first, escalate-on-uncertainty"
+        and "deepseek" in plan["agent_registry"]
+    ):
+        passed += 1
+        print(f"  ✅ [结构化计划] {title[:32]:32s} → {actual_agents}")
+    else:
+        failed += 1
+        print(
+            f"  ❌ [结构化计划] {title[:32]:32s} → "
+            f"type={plan['task_type']}, agents={actual_agents}"
+        )
+
+custom_registry = {
+    "deepseek": {
+        "display_name": "DeepSeek via LiteLLM",
+        "kind": "llm_api",
+        "entry": "http://localhost:4000/v1",
+        "capabilities": ["cheap_analysis", "planning", "review"],
+        "cost_mode": "metered_low",
+    }
+}
+custom_plan = plan_task("帮我做个东西", agent_registry=custom_registry)
+if custom_plan["agent_registry"] == custom_registry:
+    passed += 1
+    print("  ✅ [配置化 Registry] plan_task 使用外部 agent_registry")
+else:
+    failed += 1
+    print("  ❌ [配置化 Registry] plan_task 未使用外部 agent_registry")
+
+print("\n" + "=" * 60)
+print(f"结构化路由后结果: {passed} 通过, {failed} 失败")
 print("=" * 60)
 
 sys.exit(0 if failed == 0 else 1)

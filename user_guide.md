@@ -47,6 +47,27 @@ agy-flow --help
 }
 ```
 
+v3 起，配置中建议区分两层：
+
+- `agents`: 执行层配置，描述 CLI 命令、指导文件、交互方式等。
+- `agent_registry`: 路由层配置，描述 Agent 的 `kind`、入口、能力、成本模式。`agy-flow plan` 和 `agy-flow create` 会优先读取这里生成结构化计划。
+
+示例：
+
+```json
+{
+    "agent_registry": {
+        "deepseek": {
+            "display_name": "DeepSeek",
+            "kind": "llm_api",
+            "entry": "litellm",
+            "capabilities": ["cheap_analysis", "planning", "review"],
+            "cost_mode": "metered_low"
+        }
+    }
+}
+```
+
 ---
 
 ## 三、 全局核心指令指南
@@ -60,9 +81,16 @@ agy-flow init
 ```
 
 ### 2. 创建新开发任务
-自动在项目根目录生成任务文件并追加至看板：
+自动在项目根目录生成任务文件、结构化路由计划并追加至看板：
 ```bash
 agy-flow create "任务标题" --agent <claude|antigravity|codex>
+```
+
+未指定 `--agent` 时，框架会先生成结构化 plan，再把 `legacy_agent` 写入看板以保持现有 `start/submit` 流程兼容。同时会保存：
+
+```text
+.agents/tasks/task-00X.md
+.agents/tasks/task-00X.plan.json
 ```
 
 ### 3. 查看当前项目进度
@@ -71,19 +99,72 @@ agy-flow create "任务标题" --agent <claude|antigravity|codex>
 agy-flow status
 ```
 
-### 4. 启动任务并拉起隔离区
+### 4. 预览结构化路由计划
+在真正创建任务前，先查看框架推荐的 Agent pipeline、任务类型、置信度与成本策略：
+```bash
+agy-flow plan "编写后端登录验证接口，设计前端 HTML 登录框并进行页面视觉走查"
+```
+
+该命令只输出 JSON 计划，不会创建任务、分支、plan 文件或 worktree，适合用于 VS Code、Codex Desktop、Antigravity 等上层入口做预调度。
+
+### 5. 切换当前接手 Agent
+当前项目用 `.agents/current_task.json` 做路由保护。无需手动编辑 JSON，可用：
+
+```bash
+agy-flow assign codex
+agy-flow assign antigravity
+```
+
+可选记录当前任务：
+
+```bash
+agy-flow assign antigravity --task-id task-010
+```
+
+### 6. 启动任务并拉起隔离区
 ```bash
 agy-flow start <task-id>
 ```
 
-### 5. 在隔离区完成开发后提审
+### 7. 在隔离区完成开发后提审
 ```bash
 agy-flow submit <task-id> [--test-cmd "测试指令"]
 ```
 
-### 6. 合并代码并销毁隔离区
+`submit` 会优先读取 `.agents/tasks/task-00X.plan.json` 中的 `recommended_pipeline`，并只对可接手 worktree 的 Agent 做交接。handoff 指导文件会包含下一位 Agent 的 `role`、`purpose` 和完整 Routing Plan。
+
+预览某个任务的接力链：
+
+```bash
+agy-flow handoff-plan task-009
+```
+
+### 8. 合并代码并销毁隔离区
 ```bash
 agy-flow merge <task-id>
+```
+
+### 9. 调用低成本 LLM Agent
+DeepSeek/LiteLLM 这类 API Agent 通过 OpenAI-compatible `/chat/completions` 接口调用。密钥只从环境变量读取，不写入仓库：
+
+```powershell
+$env:DEEPSEEK_API_KEY="sk-..."
+agy-flow ask deepseek "把这个需求拆成验收标准"
+agy-flow review task-010 --agent deepseek
+```
+
+验证配置但不实际调用 API：
+
+```powershell
+agy-flow ask deepseek "hello" --dry-run
+agy-flow review task-010 --agent deepseek --dry-run
+```
+
+如果使用本地 LiteLLM，可设置：
+
+```powershell
+$env:LITELLM_BASE_URL="http://localhost:4000/v1"
+$env:LITELLM_API_KEY="..."
 ```
 
 ---

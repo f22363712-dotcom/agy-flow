@@ -10,7 +10,7 @@ Requested workflow: Research, Refine Requirements, Find References, Determine Te
 
 ### Antigravity Response (2026-07-10 23:00:19)
 - Reviewed the workflow and confirmed its feasibility.
-- Summarized research: Git worktrees for workspace isolation, Git-native task board formats, dynamic context files (like CLAUDE.md).
++- Summarized research: Git worktrees for workspace isolation, Git-native task board formats, dynamic context files (like CLAUDE.md).
 - Proposed division of labor:
   - Claude Code: Logic developer (code logic, unit tests).
   - Antigravity: Architect and Visual QA.
