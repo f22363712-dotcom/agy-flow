@@ -65,6 +65,15 @@ class TestAgyFlowServer(unittest.TestCase):
             pass
         agy_flow_mod.init_project(DummyArgs())
 
+        # Overwrite worktrees_dir in the temp config to avoid directory collisions
+        config_path = cls.temp_path / ".agents" / "config.json"
+        if config_path.exists():
+            with open(config_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            cfg["worktrees_dir"] = str(cls.temp_path / "worktrees")
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, indent=4)
+
         # Create a dummy task inside the temp environment for details/handoff tests
         class DummyCreateArgs:
             title = "API Gateway Integration Test Task"
@@ -107,7 +116,10 @@ class TestAgyFlowServer(unittest.TestCase):
         import agy_flow.git_ops
         agy_flow.git_ops.PROJECT_ROOT = cls.old_project_root
         
-        cls.temp_dir.cleanup()
+        try:
+            cls.temp_dir.cleanup()
+        except Exception:
+            pass
 
     def test_health(self):
         req = urllib.request.Request(f"{self.base_url}/health")
@@ -292,6 +304,189 @@ class TestAgyFlowServer(unittest.TestCase):
         with urllib.request.urlopen(req_dash) as res:
             self.assertEqual(res.status, 200)
             self.assertIn("text/html", res.headers.get("Content-Type"))
+
+    def test_assign_endpoint(self):
+        payload = json.dumps({
+            "agent": "antigravity",
+            "task_id": "task-001"
+        }).encode('utf-8')
+        req = urllib.request.Request(
+            f"{self.base_url}/assign",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req) as res:
+            self.assertEqual(res.status, 200)
+            data = json.loads(res.read().decode('utf-8'))
+            self.assertEqual(data.get("agent"), "antigravity")
+            self.assertEqual(data.get("task_id"), "task-001")
+            self.assertIn("timestamp", data)
+
+    def test_agent_registry_endpoint(self):
+        req = urllib.request.Request(f"{self.base_url}/config/agent-registry")
+        with urllib.request.urlopen(req) as res:
+            self.assertEqual(res.status, 200)
+            data = json.loads(res.read().decode('utf-8'))
+            self.assertIn("claude", data)
+            self.assertIn("antigravity", data)
+            self.assertIn("codex", data)
+            self.assertIn("deepseek", data)
+            
+            # Assert no raw api keys present (only api_key_env names are allowed)
+            for agent_name, agent_cfg in data.items():
+                for k, v in agent_cfg.items():
+                    if k != "api_key_env":
+                        self.assertNotIn("api_key", k.lower())
+                        self.assertNotIn("secret", k.lower())
+                        self.assertNotIn("token", k.lower())
+
+    def test_ask_deepseek_missing_key(self):
+        old_ds_key = os.environ.get("DEEPSEEK_API_KEY")
+        old_lt_key = os.environ.get("LITELLM_API_KEY")
+        if "DEEPSEEK_API_KEY" in os.environ:
+            del os.environ["DEEPSEEK_API_KEY"]
+        if "LITELLM_API_KEY" in os.environ:
+            del os.environ["LITELLM_API_KEY"]
+
+        try:
+            payload = json.dumps({
+                "prompt": "Hello DeepSeek"
+            }).encode('utf-8')
+            req = urllib.request.Request(
+                f"{self.base_url}/ask/deepseek",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(req)
+            self.assertEqual(ctx.exception.code, 400)
+            data = json.loads(ctx.exception.read().decode('utf-8'))
+            self.assertEqual(data.get("status"), "unavailable")
+            self.assertEqual(data.get("review_source"), "unavailable")
+            self.assertIn("error", data)
+        finally:
+            if old_ds_key is not None:
+                os.environ["DEEPSEEK_API_KEY"] = old_ds_key
+            if old_lt_key is not None:
+                os.environ["LITELLM_API_KEY"] = old_lt_key
+
+    def test_ask_deepseek_mock_explicit(self):
+        old_ds_key = os.environ.get("DEEPSEEK_API_KEY")
+        old_lt_key = os.environ.get("LITELLM_API_KEY")
+        if "DEEPSEEK_API_KEY" in os.environ:
+            del os.environ["DEEPSEEK_API_KEY"]
+        if "LITELLM_API_KEY" in os.environ:
+            del os.environ["LITELLM_API_KEY"]
+
+        try:
+            payload = json.dumps({
+                "prompt": "Hello DeepSeek mock test",
+                "mock": True
+            }).encode('utf-8')
+            req = urllib.request.Request(
+                f"{self.base_url}/ask/deepseek",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req) as res:
+                self.assertEqual(res.status, 200)
+                data = json.loads(res.read().decode('utf-8'))
+                self.assertEqual(data.get("status"), "success")
+                self.assertEqual(data.get("review_source"), "mock")
+                self.assertIn("response", data)
+                self.assertIn("Mock Answer", data.get("response"))
+        finally:
+            if old_ds_key is not None:
+                os.environ["DEEPSEEK_API_KEY"] = old_ds_key
+            if old_lt_key is not None:
+                os.environ["LITELLM_API_KEY"] = old_lt_key
+
+    def test_review_missing_key(self):
+        old_ds_key = os.environ.get("DEEPSEEK_API_KEY")
+        old_lt_key = os.environ.get("LITELLM_API_KEY")
+        if "DEEPSEEK_API_KEY" in os.environ:
+            del os.environ["DEEPSEEK_API_KEY"]
+        if "LITELLM_API_KEY" in os.environ:
+            del os.environ["LITELLM_API_KEY"]
+
+        req_start = urllib.request.Request(
+            f"{self.base_url}/tasks/task-001/start",
+            data=b"",
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req_start) as r:
+                pass
+        except urllib.error.HTTPError:
+            pass
+
+        try:
+            payload = json.dumps({
+                "mock": False
+            }).encode('utf-8')
+            req = urllib.request.Request(
+                f"{self.base_url}/tasks/task-001/review",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                urllib.request.urlopen(req)
+            self.assertEqual(ctx.exception.code, 400)
+            data = json.loads(ctx.exception.read().decode('utf-8'))
+            self.assertEqual(data.get("status"), "missing_api_key")
+            self.assertEqual(data.get("review_source"), "unavailable")
+            self.assertIn("review", data)
+        finally:
+            if old_ds_key is not None:
+                os.environ["DEEPSEEK_API_KEY"] = old_ds_key
+            if old_lt_key is not None:
+                os.environ["LITELLM_API_KEY"] = old_lt_key
+
+    def test_review_mock_explicit(self):
+        old_ds_key = os.environ.get("DEEPSEEK_API_KEY")
+        old_lt_key = os.environ.get("LITELLM_API_KEY")
+        if "DEEPSEEK_API_KEY" in os.environ:
+            del os.environ["DEEPSEEK_API_KEY"]
+        if "LITELLM_API_KEY" in os.environ:
+            del os.environ["LITELLM_API_KEY"]
+
+        req_start = urllib.request.Request(
+            f"{self.base_url}/tasks/task-001/start",
+            data=b"",
+            method="POST"
+        )
+        try:
+            with urllib.request.urlopen(req_start) as r:
+                pass
+        except Exception:
+            pass
+
+        try:
+            payload = json.dumps({
+                "mock": True
+            }).encode('utf-8')
+            req = urllib.request.Request(
+                f"{self.base_url}/tasks/task-001/review",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+            with urllib.request.urlopen(req) as res:
+                self.assertEqual(res.status, 200)
+                data = json.loads(res.read().decode('utf-8'))
+                self.assertEqual(data.get("status"), "success")
+                self.assertEqual(data.get("review_source"), "mock")
+                self.assertIn("review", data)
+                self.assertIn("Mock Review", data.get("review"))
+        finally:
+            if old_ds_key is not None:
+                os.environ["DEEPSEEK_API_KEY"] = old_ds_key
+            if old_lt_key is not None:
+                os.environ["LITELLM_API_KEY"] = old_lt_key
 
 
 if __name__ == "__main__":

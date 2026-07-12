@@ -82,40 +82,41 @@ def ask_agent_command(args):
     if answer is not None:
         print(answer)
 
-def get_task_diff_fallback(task, max_chars):
+def get_task_diff_service(task, max_chars):
     worktree = task.get("worktree", "").strip()
     if not worktree:
-        print(f"Error: Task '{task['id']}' has no worktree path.")
-        sys.exit(1)
+        raise ValueError(f"Task '{task['id']}' has no active worktree path.")
     from pathlib import Path
     worktree_path = Path(worktree)
     if not worktree_path.exists():
-        print(f"Error: Worktree path does not exist: {worktree_path}")
-        sys.exit(1)
+        raise ValueError(f"Worktree path does not exist: {worktree_path}")
 
     code, stat, stderr = run_cmd(["git", "diff", "--stat"], cwd=str(worktree_path))
     if code != 0:
-        print(f"Error collecting diff stat: {stderr}")
-        sys.exit(1)
+        raise RuntimeError(f"Error collecting diff stat: {stderr}")
 
     code, diff, stderr = run_cmd(["git", "diff", "--", "."], cwd=str(worktree_path))
     if code != 0:
-        print(f"Error collecting diff: {stderr}")
-        sys.exit(1)
-
-    if not diff:
+        # Fallback to HEAD diff
         code, diff, stderr = run_cmd(["git", "diff", "HEAD", "--", "."], cwd=str(worktree_path))
         if code != 0:
-            print(f"Error collecting HEAD diff: {stderr}")
-            sys.exit(1)
+            raise RuntimeError(f"Error collecting HEAD diff: {stderr}")
 
     return stat, truncate_text(diff or "[No diff found]", max_chars)
 
+def get_task_diff_fallback(task, max_chars):
+    try:
+        return get_task_diff_service(task, max_chars)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
 def parse_board_rows_fallback():
-    from agy_flow.config import BOARD_FILE
-    if not BOARD_FILE.exists():
+    import agy_flow.config
+    board_file = agy_flow.config.BOARD_FILE
+    if not board_file.exists():
         return []
-    with open(BOARD_FILE, "r", encoding="utf-8") as f:
+    with open(board_file, "r", encoding="utf-8") as f:
         lines = f.readlines()
     tasks = []
     for line in lines:
@@ -134,19 +135,18 @@ def parse_board_rows_fallback():
                 })
     return tasks
 
-def review_task_command(args):
-    """Ask an LLM API agent to review a task worktree diff."""
+def review_task_service(task_id, agent="deepseek", max_diff_chars=10000, dry_run=False, mock=False):
+    import agy_flow.config
     tasks = parse_board_rows_fallback()
-    task = next((t for t in tasks if t["id"] == args.task_id), None)
+    task = next((t for t in tasks if t["id"] == task_id), None)
     if not task:
-        print(f"Error: Task '{args.task_id}' not found.")
-        sys.exit(1)
+        raise ValueError(f"Task '{task_id}' not found.")
 
-    task_file = agy_flow.config.TASKS_DIR / f"{args.task_id}.md"
-    plan_file = agy_flow.config.TASKS_DIR / f"{args.task_id}.plan.json"
+    task_file = agy_flow.config.TASKS_DIR / f"{task_id}.md"
+    plan_file = agy_flow.config.TASKS_DIR / f"{task_id}.plan.json"
     task_spec = task_file.read_text(encoding="utf-8") if task_file.exists() else ""
     plan_text = plan_file.read_text(encoding="utf-8") if plan_file.exists() else "{}"
-    diff_stat, diff = get_task_diff_fallback(task, args.max_diff_chars)
+    diff_stat, diff = get_task_diff_service(task, max_diff_chars)
 
     prompt = f"""Review this task implementation as a concise engineering reviewer.
 
@@ -168,17 +168,54 @@ Diff Stat:
 Diff:
 {diff}
 """
+    config = agy_flow.config.get_config()
+    settings = agy_flow.config.get_llm_agent_settings(agent, config)
+    api_key_env = settings.get("api_key_env", "DEEPSEEK_API_KEY")
+    api_key_val = os.environ.get(api_key_env)
+
+    if mock:
+        mock_response = f"[Mock Review by {agent}]\n\n1. [P1] Missing verification assertions inside tests.\n2. [P2] Hardcoded dynamic ports in setup block.\n3. [P3] Minor styling alignment issues on sidebar component.\n\nAll structural task validations passed."
+        return mock_response, "mock"
+
+    if not api_key_val:
+        return None, "unavailable"
+
     answer = call_openai_compatible_chat(
-        args.agent,
+        agent,
         prompt,
         system_prompt=(
             "You are a careful code reviewer. Do not rewrite the whole patch. "
             "Prioritize concrete bugs and risks over style."
         ),
-        dry_run=args.dry_run,
+        dry_run=dry_run,
     )
-    if answer is not None:
-        print(answer)
+    if answer is None:
+        return "Failed to get review from LLM model.", "unavailable"
+
+    return answer, "deepseek"
+
+def review_task_command(args):
+    """Ask an LLM API agent to review a task worktree diff."""
+    try:
+        config = agy_flow.config.get_config()
+        settings = agy_flow.config.get_llm_agent_settings(args.agent, config)
+        api_key_env = settings.get("api_key_env", "DEEPSEEK_API_KEY")
+
+        if not os.environ.get(api_key_env) and not args.dry_run:
+            print(f"Error: API Key environment variable '{api_key_env}' is not configured.")
+            sys.exit(1)
+
+        answer, source = review_task_service(
+            args.task_id,
+            agent=args.agent,
+            max_diff_chars=args.max_diff_chars,
+            dry_run=args.dry_run
+        )
+        if answer is not None:
+            print(answer)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 def update_module_paths():

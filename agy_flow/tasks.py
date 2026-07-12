@@ -34,17 +34,21 @@ from agy_flow.handoff import (
 
 def load_board():
     """Loads the board.md file lines."""
-    if not BOARD_FILE.exists():
+    import agy_flow.config
+    board_file = agy_flow.config.BOARD_FILE
+    if not board_file.exists():
         print(
-            f"Error: Board file not found at {BOARD_FILE}. Run 'agy-flow init' first."
+            f"Error: Board file not found at {board_file}. Run 'agy-flow init' first."
         )
         sys.exit(1)
-    with open(BOARD_FILE, "r", encoding="utf-8") as f:
+    with open(board_file, "r", encoding="utf-8") as f:
         return f.readlines()
 
 def save_board(lines):
     """Saves lines back to board.md."""
-    with open(BOARD_FILE, "w", encoding="utf-8") as f:
+    import agy_flow.config
+    board_file = agy_flow.config.BOARD_FILE
+    with open(board_file, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
 def format_plan_summary(plan):

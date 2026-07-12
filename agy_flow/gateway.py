@@ -5,9 +5,10 @@ import urllib.parse
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from agy_flow.errors import AgyFlowError
-from agy_flow.config import PROJECT_ROOT, get_config, get_agent_registry
+from agy_flow.config import PROJECT_ROOT, get_config, get_agent_registry, get_llm_agent_settings
 from agy_flow.tasks import parse_board_rows, create_task, start_task, submit_task
-from agy_flow.handoff import load_task_plan, get_handoff_steps, find_next_handoff_step
+from agy_flow.handoff import load_task_plan, get_handoff_steps, find_next_handoff_step, assign_current_task_agent
+from agy_flow.llm import review_task_service, call_openai_compatible_chat
 from agy_flow_classify import plan_task
 
 DASHBOARD_HTML = """<!DOCTYPE html>
@@ -345,7 +346,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
     <!-- Task Detail Modal -->
     <div class="modal" id="detail-modal">
-        <div class="modal-content" style="width: 600px;">
+        <div class="modal-content" style="width: 600px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" id="detail-title">任务详情</div>
             <div class="detail-item">
                 <div class="detail-label">任务状态 & 协同智能体</div>
@@ -362,7 +363,47 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                 <div class="detail-label">交接路由细节</div>
                 <div class="detail-val" id="detail-handoff" style="font-size:12px;">无</div>
             </div>
-            <div class="form-actions">
+            
+            <!-- Step 5: Handoff and Assign Section -->
+            <div class="detail-item">
+                <div class="detail-label">手动指派/协同交接 Agent</div>
+                <div style="display:flex; gap: 10px; align-items: center; margin-top: 5px;">
+                    <select id="detail-assign-select" style="flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; color: var(--text-primary); outline: none;">
+                        <!-- Options dynamically loaded from registry -->
+                    </select>
+                    <button class="btn" style="padding: 8px 16px; font-size: 12px;" onclick="triggerHandoffAssign()">执行移交</button>
+                </div>
+            </div>
+
+            <!-- Step 5: AI Code Review Section -->
+            <div class="detail-item">
+                <div class="detail-label" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>DeepSeek AI 智能代码审查</span>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn" style="padding: 6px 12px; font-size: 11px; background: rgba(0, 229, 255, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 229, 255, 0.3);" onclick="triggerDeepseekReview(false)">AI 真实审查</button>
+                        <button class="btn" style="padding: 6px 12px; font-size: 11px; background: rgba(255, 215, 0, 0.15); color: var(--accent-gold); border: 1px solid rgba(255, 215, 0, 0.3);" onclick="triggerDeepseekReview(true)">Mock 模拟审查</button>
+                    </div>
+                </div>
+                <div id="detail-review-container" style="margin-top: 10px;">
+                    <div id="detail-review-badge-row" style="display:none; margin-bottom: 6px;">
+                        <span id="detail-review-badge" class="agent-badge" style="font-weight:600;">-</span>
+                    </div>
+                    <div class="detail-val" id="detail-review-box" style="font-size:12px; max-height: 200px; overflow-y: auto; background: rgba(255, 255, 255, 0.01); display: none;">暂无审查结果</div>
+                </div>
+            </div>
+
+            <!-- Step 5: Agent Registry Configuration Section -->
+            <div class="detail-item" style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 15px;">
+                <div class="detail-label" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="toggleRegistryCollapse()">
+                    <span>🤖 系统智能体能力注册表 (agent_registry)</span>
+                    <span id="registry-arrow">▼</span>
+                </div>
+                <div id="detail-registry-box" style="display: none; margin-top: 10px; font-size: 11px; color: var(--text-secondary); max-height: 150px; overflow-y: auto; font-family: monospace; white-space: pre-wrap; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    加载中...
+                </div>
+            </div>
+
+            <div class="form-actions" style="margin-top: 20px;">
                 <button class="btn-cancel" onclick="closeDetailModal()">关闭</button>
             </div>
         </div>
@@ -561,9 +602,131 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             }
         }
 
-        async function viewTaskDetail(taskId) {
+        let currentViewingTaskId = null;
+        let globalRegistry = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchTasks();
+            fetchRegistry();
+        });
+
+        async function fetchRegistry() {
             try {
-                // Fetch basic info and handoff plan details
+                const res = await fetch(`${API_BASE}/config/agent-registry`);
+                if (res.ok) {
+                    globalRegistry = await res.json();
+                    
+                    const select = document.getElementById('detail-assign-select');
+                    select.innerHTML = '';
+                    Object.keys(globalRegistry).forEach(agentKey => {
+                        const agentInfo = globalRegistry[agentKey];
+                        const option = document.createElement('option');
+                        option.value = agentKey;
+                        option.text = `${agentInfo.name || agentKey} (${agentInfo.role || 'Agent'})`;
+                        select.appendChild(option);
+                    });
+
+                    document.getElementById('detail-registry-box').innerText = JSON.stringify(globalRegistry, null, 4);
+                }
+            } catch (err) {
+                console.error("Failed to load agent registry:", err);
+            }
+        }
+
+        function toggleRegistryCollapse() {
+            const box = document.getElementById('detail-registry-box');
+            const arrow = document.getElementById('registry-arrow');
+            if (box.style.display === 'none') {
+                box.style.display = 'block';
+                arrow.innerText = '▲';
+            } else {
+                box.style.display = 'none';
+                arrow.innerText = '▼';
+            }
+        }
+
+        async function triggerHandoffAssign() {
+            if (!currentViewingTaskId) return;
+            const select = document.getElementById('detail-assign-select');
+            const selectedAgent = select.value;
+            
+            try {
+                const res = await fetch(`${API_BASE}/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ agent: selectedAgent, task_id: currentViewingTaskId })
+                });
+                if (res.ok) {
+                    alert(`任务已成功指派/移交给: ${selectedAgent}`);
+                    fetchTasks();
+                    viewTaskDetail(currentViewingTaskId);
+                } else {
+                    const data = await res.json();
+                    alert("交接指派失败: " + (data.error || "未知错误"));
+                }
+            } catch (err) {
+                alert("请求出错。");
+            }
+        }
+
+        async function triggerDeepseekReview(mockFlag) {
+            if (!currentViewingTaskId) return;
+            const reviewBox = document.getElementById('detail-review-box');
+            const badgeRow = document.getElementById('detail-review-badge-row');
+            const badge = document.getElementById('detail-review-badge');
+
+            reviewBox.style.display = 'block';
+            reviewBox.innerText = "🔍 AI 智能代码审查中，正在对比分析工作区改动，请稍候……";
+            badgeRow.style.display = 'none';
+
+            try {
+                const res = await fetch(`${API_BASE}/tasks/${currentViewingTaskId}/review`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mock: mockFlag })
+                });
+
+                const data = await res.json();
+                badgeRow.style.display = 'block';
+
+                if (res.ok) {
+                    reviewBox.innerText = data.review || "无审查结果";
+                    if (data.review_source === 'deepseek') {
+                        badge.innerText = "Real DeepSeek";
+                        badge.style.background = "rgba(0, 229, 255, 0.15)";
+                        badge.style.color = "#00e5ff";
+                    } else if (data.review_source === 'mock') {
+                        badge.innerText = "Mock Review";
+                        badge.style.background = "rgba(255, 215, 0, 0.15)";
+                        badge.style.color = "#ffd700";
+                    } else {
+                        badge.innerText = "Missing API Key";
+                        badge.style.background = "rgba(255, 64, 129, 0.15)";
+                        badge.style.color = "#ff4081";
+                    }
+                } else {
+                    reviewBox.innerText = data.review || data.error || "审查失败";
+                    badge.innerText = "Missing API Key";
+                    badge.style.background = "rgba(255, 64, 129, 0.15)";
+                    badge.style.color = "#ff4081";
+                }
+            } catch (err) {
+                reviewBox.innerText = "请求错误: " + err;
+                badgeRow.style.display = 'block';
+                badge.innerText = "Unavailable";
+                badge.style.background = "rgba(255, 64, 129, 0.15)";
+                badge.style.color = "#ff4081";
+            }
+        }
+
+        async function viewTaskDetail(taskId) {
+            currentViewingTaskId = taskId;
+            
+            document.getElementById('detail-review-box').style.display = 'none';
+            document.getElementById('detail-review-box').innerText = '';
+            document.getElementById('detail-review-badge-row').style.display = 'none';
+            
+            try {
                 const detailRes = await fetch(`${API_BASE}/tasks/${taskId}`);
                 const handoffRes = await fetch(`${API_BASE}/tasks/${taskId}/handoff-plan`);
                 
@@ -574,6 +737,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
                     document.getElementById('detail-agent').innerText = t.agent;
                     document.getElementById('detail-workspace').innerText = `Git Branch : ${t.branch || 'None'}\nWorktree Path: ${t.worktree || 'None'}`;
                     
+                    const select = document.getElementById('detail-assign-select');
+                    if (select && t.agent) {
+                        select.value = t.agent.split('->')[0].trim().toLowerCase();
+                    }
+
                     if (handoffRes.ok) {
                         const h = await handoffRes.json();
                         let stepsText = `当前正在协作的智能体: ${h.active_agent}\n`;
@@ -642,6 +810,25 @@ class AgyFlowHTTPHandler(BaseHTTPRequestHandler):
 
         if path == '/health':
             self.send_json_response({"status": "ok", "project_root": str(PROJECT_ROOT)})
+            return
+
+        if path == '/config/agent-registry':
+            try:
+                registry = get_agent_registry(get_config())
+                safe_registry = {}
+                for agent_name, agent_cfg in registry.items():
+                    safe_agent_cfg = agent_cfg.copy()
+                    keys_to_delete = [
+                        k for k in safe_agent_cfg.keys()
+                        if any(x in k.lower() for x in ["api_key", "secret", "token", "password"])
+                        and k != "api_key_env"
+                    ]
+                    for k in keys_to_delete:
+                        del safe_agent_cfg[k]
+                    safe_registry[agent_name] = safe_agent_cfg
+                self.send_json_response(safe_registry)
+            except Exception as e:
+                self.send_json_error(500, f"Failed to get agent registry: {e}")
             return
 
         if path == '/tasks':
@@ -804,6 +991,106 @@ class AgyFlowHTTPHandler(BaseHTTPRequestHandler):
                 self.send_json_response({"status": "submitted", "task_id": task_id})
             except Exception as e:
                 self.send_json_error(400, f"Failed to submit task: {e}")
+            return
+
+        if path == '/assign':
+            try:
+                params = json.loads(post_data) if post_data else {}
+                agent = params.get("agent", "")
+                task_id = params.get("task_id")
+                if not agent:
+                    self.send_json_error(400, "Missing 'agent' in request body.")
+                    return
+
+                import agy_flow.handoff
+                current_task_path, metadata = agy_flow.handoff.assign_current_task_agent(agent, task_id)
+                self.send_json_response(metadata)
+            except Exception as e:
+                self.send_json_error(400, f"Failed to assign task: {e}")
+            return
+
+        if path == '/ask/deepseek':
+            try:
+                import os
+                params = json.loads(post_data) if post_data else {}
+                prompt = params.get("prompt", "")
+                mock = bool(params.get("mock", False))
+
+                if not prompt:
+                    self.send_json_error(400, "Missing 'prompt' in request body.")
+                    return
+
+                config = get_config()
+                settings = get_llm_agent_settings("deepseek", config)
+                api_key_env = settings.get("api_key_env", "DEEPSEEK_API_KEY")
+                api_key_val = os.environ.get(api_key_env)
+
+                if mock:
+                    mock_response = "[Mock Answer] 这里是模拟的 DeepSeek 智能代码建议，请确保 API 密钥已正确设置以获取真实的 AI 服务。"
+                    self.send_json_response({
+                        "status": "success",
+                        "response": mock_response,
+                        "review_source": "mock"
+                    })
+                    return
+
+                if not api_key_val:
+                    self.send_json_response({
+                        "status": "unavailable",
+                        "error": "DeepSeek API key is not configured.",
+                        "review_source": "unavailable"
+                    }, code=400)
+                    return
+
+                response = call_openai_compatible_chat(
+                    "deepseek",
+                    prompt,
+                    system_prompt=(
+                        "You are a helpful coding assistant inside agy-flow. "
+                        "Be concise and concrete."
+                    )
+                )
+                if response is None:
+                    self.send_json_error(500, "Failed to call DeepSeek API completions.")
+                    return
+
+                self.send_json_response({
+                    "status": "success",
+                    "response": response,
+                    "review_source": "deepseek"
+                })
+            except Exception as e:
+                self.send_json_error(400, f"Failed to query DeepSeek: {e}")
+            return
+
+        review_match = re.match(r'^/tasks/(task-\d+)/review$', path)
+        if review_match:
+            task_id = review_match.group(1)
+            try:
+                params = json.loads(post_data) if post_data else {}
+                mock = bool(params.get("mock", False))
+
+                review_text, source = review_task_service(
+                    task_id,
+                    agent="deepseek",
+                    mock=mock
+                )
+
+                if source == "unavailable":
+                    self.send_json_response({
+                        "status": "missing_api_key",
+                        "review": "Missing API Key. DeepSeek review is unavailable.",
+                        "review_source": "unavailable"
+                    }, code=400)
+                    return
+
+                self.send_json_response({
+                    "status": "success",
+                    "review": review_text,
+                    "review_source": source
+                })
+            except Exception as e:
+                self.send_json_error(400, f"Failed to perform task review: {e}")
             return
 
         self.send_json_error(404, "Endpoint not found.")
