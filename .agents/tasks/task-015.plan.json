@@ -1,0 +1,83 @@
+{
+    "title": "Display X API cost and social query preset metadata in intelligence daily report",
+    "task_type": "logic_or_backend",
+    "confidence": 0.72,
+    "scores": {
+        "ui": 0,
+        "logic": 2,
+        "manual": 1
+    },
+    "legacy_agent": "claude -> codex",
+    "recommended_pipeline": [
+        {
+            "agent": "claude",
+            "role": "implementer",
+            "purpose": "logic-heavy coding, tests, and CLI execution"
+        },
+        {
+            "agent": "codex",
+            "role": "human_in_loop_implementer",
+            "purpose": "IDE-assisted debugging, refactor, and manual polish"
+        },
+        {
+            "agent": "deepseek",
+            "role": "reviewer",
+            "purpose": "low-cost diff review before final handoff"
+        }
+    ],
+    "policy": {
+        "strategy": "cheap-first, escalate-on-uncertainty",
+        "requires_worktree": true,
+        "budget_bias": "subscription_or_low_metered"
+    },
+    "agent_registry": {
+        "claude": {
+            "display_name": "Claude Code",
+            "kind": "cli_agent",
+            "entry": "claude",
+            "capabilities": [
+                "code_edit",
+                "logic",
+                "test",
+                "refactor"
+            ],
+            "cost_mode": "metered"
+        },
+        "antigravity": {
+            "display_name": "Antigravity",
+            "kind": "desktop_agent",
+            "entry": "antigravity",
+            "capabilities": [
+                "vision",
+                "browser",
+                "ui_review",
+                "large_context"
+            ],
+            "cost_mode": "subscription"
+        },
+        "codex": {
+            "display_name": "Codex",
+            "kind": "human_in_loop",
+            "entry": "vscode",
+            "capabilities": [
+                "code_edit",
+                "debug",
+                "review",
+                "manual_tuning"
+            ],
+            "cost_mode": "subscription"
+        },
+        "deepseek": {
+            "display_name": "DeepSeek",
+            "kind": "llm_api",
+            "entry": "litellm",
+            "capabilities": [
+                "cheap_analysis",
+                "planning",
+                "review",
+                "classification"
+            ],
+            "cost_mode": "metered_low"
+        }
+    }
+}
