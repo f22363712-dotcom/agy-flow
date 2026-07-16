@@ -18,3 +18,4 @@
 | task-014 | 自动化分发社媒内容工作流：完善数据复盘与视频分发 | claude | In Progress | agent/task-014 | D:\multi_agent_worktrees\task-014 |
 | task-015 | Display X API cost and social query preset metadata in intelligence daily report | claude->codex->deepseek | Todo | | |
 | task-016 | Test workspace integration | claude->deepseek | Todo | | |
+| task-017 | MCP共享黑板设计审查：扩展agy-flow MCP Server支持跨Agent交接 | codex | Todo | | |
