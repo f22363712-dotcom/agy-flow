@@ -24,7 +24,11 @@ _HANDOFF_ID_RE = re.compile(r"^[a-f0-9]{16,32}$")
 
 @dataclass
 class HandoffContext:
-    """A single handoff transfer between two agents."""
+    """A single handoff transfer between two agents.
+
+    v2 (P1): added ``schema_version``, ``allowed_actions``,
+    ``context_sha256`` for handoff envelope integrity checks.
+    """
 
     handoff_id: str
     task_id: str
@@ -37,10 +41,22 @@ class HandoffContext:
     acked: bool = False
     acked_by: str | None = None
     acked_at: str | None = None
+    # -- P1 envelope fields --
+    schema_version: str = "1"
+    allowed_actions: list[str] | None = None
+    context_sha256: str = ""
 
     def __post_init__(self):
         if not self.timestamp:
             self.timestamp = datetime.datetime.now().isoformat()
+        if not self.context_sha256 and self.context:
+            import hashlib
+
+            object.__setattr__(
+                self,
+                "context_sha256",
+                hashlib.sha256(self.context.encode()).hexdigest(),
+            )
 
 
 @dataclass

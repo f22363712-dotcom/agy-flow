@@ -549,6 +549,18 @@ def main():
     )
     parser_audit.add_argument("--json", action="store_true", help="Output raw JSON")
 
+    # launch subcommand
+    parser_launch = subparsers.add_parser(
+        "launch", help="Preview and confirm a handoff launch"
+    )
+    parser_launch.add_argument("task_id", type=str, help="Task ID (e.g. task-018)")
+    parser_launch.add_argument(
+        "--dry-run", action="store_true", help="Preview only, don't launch"
+    )
+    parser_launch.add_argument(
+        "--confirm", action="store_true", help="Skip interactive confirmation"
+    )
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -666,6 +678,44 @@ def main():
                 )
                 detail = f" — {f['detail']}" if f.get("detail") else ""
                 print(f"  {status_sym} #{f['rule_id']:02d} {f['title']}{detail}")
+    elif args.command == "launch":
+        from agent_relay.handoff_envelope import preview_handoff, confirm_and_launch
+
+        if args.dry_run:
+            result = preview_handoff(args.task_id)
+            if not result["ok"]:
+                print(f"❌ {result.get('error', 'checks failed')}")
+                for v in result.get("verdicts", []):
+                    sym = {"pass": "✅", "warn": "⚠️", "fail": "❌"}.get(
+                        v["status"], "?"
+                    )
+                    print(f"  {sym} {v['check_id']} {v['title']}: {v['detail']}")
+            else:
+                p = result["preview"]
+                print(f"\U0001f4cb Handoff Preview: {p['handoff_id'][:12]}")
+                print(f"   Task:       {p['task_id']}")
+                print(f"   From:       {p['from_agent']}")
+                print(f"   To:         {p['to_agent']}")
+                print(f"   Summary:    {p['summary']}")
+                print(f"   Context:    {p['context_preview']}...")
+                print(f"   Size:       {p['context_size']} chars")
+        else:
+            result = confirm_and_launch(args.task_id, confirm=args.confirm)
+            action = result.get("action", "error")
+            if action == "blocked":
+                print(f"\U0001f6ab Launch blocked: {result.get('errors', [])}")
+            elif action == "confirm_required":
+                print(f"⚠️  Handoff passed all checks. Re-run with --confirm to launch.")
+                p = result["preview"]
+                print(f"   Will run: {p['to_agent']} on task {p['task_id']}")
+            elif action == "launched":
+                print(
+                    f"\U0001f680 Launched: {
+                        result.get('result', {}).get('run_id', '?')
+                    }"
+                )
+            else:
+                print(f"❌ {result.get('error', 'unknown error')}")
     elif args.command == "plan":
         plan_task_command(args)
     elif args.command == "route":
