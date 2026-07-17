@@ -32,7 +32,11 @@ from agent_relay.orchestrator import auto_command
 from agent_relay.adapter import get_run
 from agent_relay.output_parser import parse_agent_output
 from agent_relay.review_loop import continue_after_run
-from agent_relay.state_machine import get_task_state, set_task_state, transition_task_state
+from agent_relay.state_machine import (
+    get_task_state,
+    set_task_state,
+    transition_task_state,
+)
 from agent_relay.policy import get_policy_info, can_dispatch, can_continue
 from agent_relay.quality_gate import evaluate_task_quality
 from agent_relay.submit_pipeline import finalize_task
@@ -47,7 +51,12 @@ from agent_relay.workspaces import (
     set_default,
     resolve_workspace,
 )
-from agent_relay.trial_recorder import trial_start, trial_event, trial_stop, trial_export
+from agent_relay.trial_recorder import (
+    trial_start,
+    trial_event,
+    trial_stop,
+    trial_export,
+)
 from agent_relay.trial import value_report
 
 
@@ -534,6 +543,12 @@ def main():
     )
     parser_cost_budget.add_argument("amount", type=float, help="Budget amount in USD")
 
+    # audit subcommand
+    parser_audit = subparsers.add_parser(
+        "audit", help="Run config, security & handoff integrity checks"
+    )
+    parser_audit.add_argument("--json", action="store_true", help="Output raw JSON")
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -632,6 +647,25 @@ def main():
         from agent_relay.mcp_server import run_mcp_server
 
         run_mcp_server()
+    elif args.command == "audit":
+        from agent_relay.audit import run_audit
+
+        result = run_audit()
+        if args.json:
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        else:
+            s = result["summary"]
+            print(
+                f"Audit: {s['passed']} passed, {s['warnings']} warnings, {
+                    s['failed']
+                } failed (score: {s['score']}%)"
+            )
+            for f in result["findings"]:
+                status_sym = {"pass": "✅", "warn": "⚠️", "fail": "❌"}.get(
+                    f["status"], "?"
+                )
+                detail = f" — {f['detail']}" if f.get("detail") else ""
+                print(f"  {status_sym} #{f['rule_id']:02d} {f['title']}{detail}")
     elif args.command == "plan":
         plan_task_command(args)
     elif args.command == "route":
