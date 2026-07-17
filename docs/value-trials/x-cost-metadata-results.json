@@ -1,0 +1,15 @@
+{
+  "trial_id": "x-cost-metadata",
+  "date": "2026-07-14",
+  "task_title": "Display X API cost and social query preset metadata in intelligence daily report",
+  "track_b": {
+    "context_copy_count": 2,
+    "manual_decision_count": 2,
+    "agent_switches": 0,
+    "friction_points": 1,
+    "errors_caught": 0,
+    "artifacts_generated": 1,
+    "notes_taken_lines": 0
+  },
+  "_source": "agy_flow_trial_recorder"
+}
