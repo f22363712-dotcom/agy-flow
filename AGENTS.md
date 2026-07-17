@@ -13,11 +13,11 @@ Before executing any tasks, reading code, or performing file/command operations,
    `[Routing Stop] This task is assigned to {writer} (writer, role={role}), not Codex. Stopping.`
 4. If authorized, proceed with the instructions below.
 
-## agy-flow Integration
-This project uses the agy-flow multi-agent collaboration framework.
+## agent-relay Integration
+This project uses the agent-relay multi-agent collaboration framework.
 
 ## Task Submission Command
 Once you complete the user's requirements and they are satisfied, you MUST run the following command in the VS Code integrated terminal to submit:
-`agy-flow submit <task-id>`
+`agent-relay submit <task-id>`
 (The active task ID is specified in `.agents/current_task.json`)
 Alternatively, you can run the default VS Code Build task by pressing `Ctrl+Shift+B` to submit automatically.

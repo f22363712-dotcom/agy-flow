@@ -1,4 +1,4 @@
-"""Direct unit tests for agy_flow.mcp_handoff_store — HandoffStore.
+"""Direct unit tests for agent_relay.mcp_handoff_store — HandoffStore.
 
 Tests the store in isolation with a temporary directory, no project init
 required.  Covers write / read / ack / history / current_all / restart
@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agy_flow.mcp_handoff_store import HandoffStore, HandoffContext, AckResult
+from agent_relay.mcp_handoff_store import HandoffStore, HandoffContext, AckResult
 
 
 class TestHandoffStoreBasics(unittest.TestCase):

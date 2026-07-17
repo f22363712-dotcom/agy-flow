@@ -48,8 +48,8 @@
 | **Codex / Copilot**<br>(IDE 插件) | IDE 高度集成、实时行级补全、人机交互体验好 | 订阅额度有限，无法自动执行复杂的多步骤 CLI 任务 | **"人机接口" (Developer Copilot)**<br>供人类开发者在主工作区或专属 Worktree 快速微调、代码 Review 和解决合并冲突。 |
 
 ### 2. 协同联动机制 (The Orchestration Flow)
-1. **任务分发**：用户运行 `agy-flow task create` 创建任务，并指定 `agent` 属性。
-2. **工作区拉起**：运行 `agy-flow task start <task-id>`：
+1. **任务分发**：用户运行 `agent-relay task create` 创建任务，并指定 `agent` 属性。
+2. **工作区拉起**：运行 `agent-relay task start <task-id>`：
    - 自动生成专属 Git 分支 `agent/task-00X`。
    - 通过 `git worktree add` 在 `D:\multi_agent_worktrees\task-00X` 拉起独立隔离目录。
    - 写入针对该 Agent 的动态上下文文件（`CLAUDE.md` 或 `.agents/AGENTS.md`）。
@@ -57,8 +57,8 @@
    - **Claude Code**：在对应 Worktree 目录启动非交互式命令（如 `claude -p`），完成算法与测试。
    - **Codex**：用户在 VS Code 中将工作区切换至该 Worktree 目录，配合 Codex 插件进行手动微调。
    - **Antigravity**：由于 Antigravity 是本会话的 Host Agent，CLI 在激活 Antigravity 任务时，会输出提示引导用户在当前 Chat 中与 Antigravity 交互。Antigravity 收到指令后，会通过工具（如 `run_command` 的 `Cwd` 参数）把操作目录限定在 `D:\multi_agent_worktrees\task-00X` 内，从而在该 worktree 中完成审查、代码调整及浏览器测试。
-4. **提交与审核**：运行 `agy-flow task submit` 跑通测试并进行自动 Commit，任务归档为 `Review`。
-5. **合并与清理**：管理员运行 `agy-flow task merge`，将代码合并至 `main` 分支，删除 Worktree 物理文件夹，清理 Worktree 记录，任务归档为 `Done`。
+4. **提交与审核**：运行 `agent-relay task submit` 跑通测试并进行自动 Commit，任务归档为 `Review`。
+5. **合并与清理**：管理员运行 `agent-relay task merge`，将代码合并至 `main` 分支，删除 Worktree 物理文件夹，清理 Worktree 记录，任务归档为 `Done`。
 
 ---
 

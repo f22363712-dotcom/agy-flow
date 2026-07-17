@@ -1,17 +1,17 @@
-# agy-flow MCP Client Trial Report
+# agent-relay MCP Client Trial Report
 
 **Version**: 1.0 | **Last updated**: 2026-07-13
 
 ## Summary
 
-The agy-flow MCP server was tested against a simulated MCP client via the `scripts/mcp_client_smoke.py` script. All steps passed.
+The agent-relay MCP server was tested against a simulated MCP client via the `scripts/mcp_client_smoke.py` script. All steps passed.
 
 ## Client Simulation
 
 | Aspect | Detail |
 |---|---|
 | **Client** | Python subprocess (simulated MCP client via `mcp_client_smoke.py`) |
-| **Server start** | `python agy-flow.py mcp` via subprocess |
+| **Server start** | `python agent-relay.py mcp` via subprocess |
 | **Transport** | stdin/stdout, line-delimited JSON-RPC 2.0 |
 | **Isolation** | `tempfile.TemporaryDirectory` per run |
 | **Protocol** | Newline-delimited JSON-RPC 2.0 |
@@ -51,7 +51,7 @@ During the trial, one **protocol pollution** bug was identified and fixed:
 
 ### P1: `run_cmd()` prints to stdout, breaking JSON-RPC
 
-**File**: `agy_flow/git_ops.py:7`
+**File**: `agent_relay/git_ops.py:7`
 **Issue**: `print(f"Executing: {' '.join(cmd)} in {run_cwd}")` printed to stdout, which mixed non-JSON text into the JSON-RPC stream. The MCP server received 3 messages and produced 4 output lines — the 3rd was `"Executing: git status --porcelain in /path"`.
 
 **Fix**: Changed `print(...)` to `print(..., file=sys.stderr, flush=True)`. Debug info now goes to stderr, stdout is pure JSON-RPC.

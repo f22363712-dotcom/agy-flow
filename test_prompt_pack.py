@@ -1,7 +1,7 @@
-"""Tests for agy_flow/prompt_pack.py — Handoff Prompt Pack."""
+"""Tests for agent_relay/prompt_pack.py — Handoff Prompt Pack."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.prompt_pack import build_handoff_prompt
+from agent_relay.errors import AgentRelayError
+from agent_relay.prompt_pack import build_handoff_prompt
 import json
 import os
 import sys
@@ -15,10 +15,10 @@ if str(project_root) not in sys.path:
 
 
 class TestHandoffPrompt(unittest.TestCase):
-    @patch("agy_flow.prompt_pack.whoami")
-    @patch("agy_flow.prompt_pack.get_task_state")
-    @patch("agy_flow.prompt_pack.list_runs")
-    @patch("agy_flow.prompt_pack.evaluate_task_quality")
+    @patch("agent_relay.prompt_pack.whoami")
+    @patch("agent_relay.prompt_pack.get_task_state")
+    @patch("agent_relay.prompt_pack.list_runs")
+    @patch("agent_relay.prompt_pack.evaluate_task_quality")
     def test_prompt_contains_guard_info(
         self, mock_quality, mock_runs, mock_state, mock_whoami
     ):
@@ -42,10 +42,10 @@ class TestHandoffPrompt(unittest.TestCase):
         self.assertIn("Codex", prompt)
         self.assertIn("antigravity", prompt)
 
-    @patch("agy_flow.prompt_pack.whoami")
-    @patch("agy_flow.prompt_pack.get_task_state")
-    @patch("agy_flow.prompt_pack.list_runs")
-    @patch("agy_flow.prompt_pack.evaluate_task_quality")
+    @patch("agent_relay.prompt_pack.whoami")
+    @patch("agent_relay.prompt_pack.get_task_state")
+    @patch("agent_relay.prompt_pack.list_runs")
+    @patch("agent_relay.prompt_pack.evaluate_task_quality")
     def test_prompt_contains_objective(
         self, mock_quality, mock_runs, mock_state, mock_whoami
     ):
@@ -57,10 +57,10 @@ class TestHandoffPrompt(unittest.TestCase):
         result = build_handoff_prompt("codex", objective="Add dark mode toggle")
         self.assertIn("dark mode toggle", result["prompt"])
 
-    @patch("agy_flow.prompt_pack.whoami")
-    @patch("agy_flow.prompt_pack.get_task_state")
-    @patch("agy_flow.prompt_pack.list_runs")
-    @patch("agy_flow.prompt_pack.evaluate_task_quality")
+    @patch("agent_relay.prompt_pack.whoami")
+    @patch("agent_relay.prompt_pack.get_task_state")
+    @patch("agent_relay.prompt_pack.list_runs")
+    @patch("agent_relay.prompt_pack.evaluate_task_quality")
     def test_prompt_contains_safety_constraints(
         self, mock_quality, mock_runs, mock_state, mock_whoami
     ):
@@ -75,10 +75,10 @@ class TestHandoffPrompt(unittest.TestCase):
         self.assertIn("GUI", prompt)
         self.assertIn("worktree", prompt)
 
-    @patch("agy_flow.prompt_pack.whoami")
-    @patch("agy_flow.prompt_pack.get_task_state")
-    @patch("agy_flow.prompt_pack.list_runs")
-    @patch("agy_flow.prompt_pack.evaluate_task_quality")
+    @patch("agent_relay.prompt_pack.whoami")
+    @patch("agent_relay.prompt_pack.get_task_state")
+    @patch("agent_relay.prompt_pack.list_runs")
+    @patch("agent_relay.prompt_pack.evaluate_task_quality")
     def test_prompt_has_agent_specific_instructions(
         self, mock_quality, mock_runs, mock_state, mock_whoami
     ):
@@ -93,10 +93,10 @@ class TestHandoffPrompt(unittest.TestCase):
         result2 = build_handoff_prompt("codex")
         self.assertIn("VS Code", result2["prompt"])
 
-    @patch("agy_flow.prompt_pack.whoami")
-    @patch("agy_flow.prompt_pack.get_task_state")
-    @patch("agy_flow.prompt_pack.list_runs")
-    @patch("agy_flow.prompt_pack.evaluate_task_quality")
+    @patch("agent_relay.prompt_pack.whoami")
+    @patch("agent_relay.prompt_pack.get_task_state")
+    @patch("agent_relay.prompt_pack.list_runs")
+    @patch("agent_relay.prompt_pack.evaluate_task_quality")
     def test_result_has_all_keys(
         self, mock_quality, mock_runs, mock_state, mock_whoami
     ):
@@ -112,7 +112,7 @@ class TestHandoffPrompt(unittest.TestCase):
         self.assertIn("warnings", result)
 
     def test_unknown_agent_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             build_handoff_prompt("nonexistent")
 
 

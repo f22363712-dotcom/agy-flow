@@ -1,10 +1,10 @@
-"""Tests for agy_flow/review_loop.py — Review Loop v1.
+"""Tests for agent_relay/review_loop.py — Review Loop v1.
 
 Uses mocked adapter dispatch to avoid real CLI/API calls.
 """
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.review_loop import continue_after_run
+from agent_relay.errors import AgentRelayError
+from agent_relay.review_loop import continue_after_run
 import json
 import os
 import sys
@@ -42,9 +42,9 @@ def _make_run(
 
 class TestReviewLoop(unittest.TestCase):
     # Patch review_loop.get_run and the adapter dispatch
-    @patch("agy_flow.review_loop.get_run")
-    @patch("agy_flow.review_loop.adapter_dispatch")
-    @patch("agy_flow.review_loop.route_task_by_id")
+    @patch("agent_relay.review_loop.get_run")
+    @patch("agent_relay.review_loop.adapter_dispatch")
+    @patch("agent_relay.review_loop.route_task_by_id")
     def test_completed_dispatches_reviewer(self, mock_route, mock_dispatch, mock_get):
         """completed status should dispatch a reviewer."""
         mock_get.return_value = _make_run("completed", "review")
@@ -65,9 +65,9 @@ class TestReviewLoop(unittest.TestCase):
         self.assertIn("review_run", result)
         mock_dispatch.assert_called_once()
 
-    @patch("agy_flow.review_loop.get_run")
-    @patch("agy_flow.review_loop.adapter_dispatch")
-    @patch("agy_flow.review_loop.route_task_by_id")
+    @patch("agent_relay.review_loop.get_run")
+    @patch("agent_relay.review_loop.adapter_dispatch")
+    @patch("agent_relay.review_loop.route_task_by_id")
     def test_needs_review_dispatches_reviewer(
         self, mock_route, mock_dispatch, mock_get
     ):
@@ -87,21 +87,21 @@ class TestReviewLoop(unittest.TestCase):
         self.assertEqual(result["status"], "continued")
         self.assertEqual(result["selected_reviewer"], "antigravity")
 
-    @patch("agy_flow.review_loop.get_run")
+    @patch("agent_relay.review_loop.get_run")
     def test_blocked_does_not_continue(self, mock_get):
         mock_get.return_value = _make_run("blocked", "manual")
         result = continue_after_run("run-test")
         self.assertEqual(result["status"], "blocked")
         self.assertIsNone(result["selected_reviewer"])
 
-    @patch("agy_flow.review_loop.get_run")
+    @patch("agent_relay.review_loop.get_run")
     def test_failed_does_not_continue(self, mock_get):
         mock_get.return_value = _make_run("failed", "manual")
         result = continue_after_run("run-test")
         self.assertEqual(result["status"], "blocked")
         self.assertIsNone(result["selected_reviewer"])
 
-    @patch("agy_flow.review_loop.get_run")
+    @patch("agent_relay.review_loop.get_run")
     def test_no_action_no_review(self, mock_get):
         mock_get.return_value = _make_run("completed", "submit")
         result = continue_after_run("run-test")
@@ -109,13 +109,13 @@ class TestReviewLoop(unittest.TestCase):
         self.assertIsNone(result["selected_reviewer"])
 
     def test_missing_run_raises(self):
-        with patch("agy_flow.review_loop.get_run", return_value=None):
-            with self.assertRaises(AgyFlowError):
+        with patch("agent_relay.review_loop.get_run", return_value=None):
+            with self.assertRaises(AgentRelayError):
                 continue_after_run("run-nonexistent")
 
-    @patch("agy_flow.review_loop.get_run")
-    @patch("agy_flow.review_loop.adapter_dispatch")
-    @patch("agy_flow.review_loop.route_task_by_id")
+    @patch("agent_relay.review_loop.get_run")
+    @patch("agent_relay.review_loop.adapter_dispatch")
+    @patch("agent_relay.review_loop.route_task_by_id")
     def test_reviewer_not_writer(self, mock_route, mock_dispatch, mock_get):
         """Reviewer must not be the same agent as the writer."""
         mock_get.return_value = _make_run("completed", "review", agent="codex")
@@ -133,9 +133,9 @@ class TestReviewLoop(unittest.TestCase):
         self.assertEqual(result["selected_reviewer"], "antigravity")
         self.assertNotEqual(result["selected_reviewer"], "codex")
 
-    @patch("agy_flow.review_loop.get_run")
-    @patch("agy_flow.review_loop.adapter_dispatch")
-    @patch("agy_flow.review_loop.route_task_by_id")
+    @patch("agent_relay.review_loop.get_run")
+    @patch("agent_relay.review_loop.adapter_dispatch")
+    @patch("agent_relay.review_loop.route_task_by_id")
     def test_deepseek_mock_reviewer_available(
         self, mock_route, mock_dispatch, mock_get
     ):
@@ -159,9 +159,9 @@ class TestReviewLoop(unittest.TestCase):
         self.assertIn("mock", kwargs)
         self.assertTrue(kwargs["mock"])
 
-    @patch("agy_flow.review_loop.get_run")
-    @patch("agy_flow.review_loop.adapter_dispatch")
-    @patch("agy_flow.review_loop.route_task_by_id")
+    @patch("agent_relay.review_loop.get_run")
+    @patch("agent_relay.review_loop.adapter_dispatch")
+    @patch("agent_relay.review_loop.route_task_by_id")
     def test_codex_reviewer_handoff(self, mock_route, mock_dispatch, mock_get):
         """Codex reviewer dispatch should return handoff, not launch GUI."""
         mock_get.return_value = _make_run("completed", "review", agent="claude")

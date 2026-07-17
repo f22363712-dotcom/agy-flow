@@ -1,10 +1,10 @@
-"""Tests for agy_flow/executors.py — CLI Agent Execution v1.
+"""Tests for agent_relay/executors.py — CLI Agent Execution v1.
 
 All subprocess calls are mocked so no real CLI is required.
 """
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.executors import run_cli_agent, build_agent_prompt
+from agent_relay.errors import AgentRelayError
+from agent_relay.executors import run_cli_agent, build_agent_prompt
 import json
 import os
 import sys
@@ -21,8 +21,8 @@ if str(project_root) not in sys.path:
 class TestRunCliAgent(unittest.TestCase):
     """Test run_cli_agent with mocked subprocess.run."""
 
-    @patch("agy_flow.executors.shutil.which", return_value="/usr/bin/claude")
-    @patch("agy_flow.executors.subprocess.run")
+    @patch("agent_relay.executors.shutil.which", return_value="/usr/bin/claude")
+    @patch("agent_relay.executors.subprocess.run")
     def test_success(self, mock_run, mock_which):
         """Success path returns stdout and status=success."""
         mock_run.return_value = MagicMock(
@@ -38,7 +38,7 @@ class TestRunCliAgent(unittest.TestCase):
         self.assertTrue(result["stderr"] is not None or result["stderr"] == "")
         self.assertEqual(result["error"], "")
 
-    @patch("agy_flow.executors.shutil.which", return_value=None)
+    @patch("agent_relay.executors.shutil.which", return_value=None)
     def test_command_not_found(self, mock_which):
         """When the CLI binary is not on PATH, return unavailable."""
         result = run_cli_agent("claude", ["claude", "-p", "hi"], "hi")
@@ -46,8 +46,8 @@ class TestRunCliAgent(unittest.TestCase):
         self.assertIsNone(result["returncode"])
         self.assertIn("not found", result["error"])
 
-    @patch("agy_flow.executors.shutil.which", return_value="/usr/bin/claude")
-    @patch("agy_flow.executors.subprocess.run")
+    @patch("agent_relay.executors.shutil.which", return_value="/usr/bin/claude")
+    @patch("agent_relay.executors.subprocess.run")
     def test_nonzero_returncode(self, mock_run, mock_which):
         """Non-zero return code yields status=error with stderr."""
         mock_run.return_value = MagicMock(
@@ -58,8 +58,8 @@ class TestRunCliAgent(unittest.TestCase):
         self.assertEqual(result["returncode"], 1)
         self.assertIn("file not found", result["error"])
 
-    @patch("agy_flow.executors.shutil.which", return_value="/usr/bin/claude")
-    @patch("agy_flow.executors.subprocess.run")
+    @patch("agent_relay.executors.shutil.which", return_value="/usr/bin/claude")
+    @patch("agent_relay.executors.subprocess.run")
     def test_timeout(self, mock_run, mock_which):
         """Timeout should return status=timeout."""
         import subprocess
@@ -70,8 +70,8 @@ class TestRunCliAgent(unittest.TestCase):
         self.assertEqual(result["status"], "timeout")
         self.assertIn("timed out", result["error"])
 
-    @patch("agy_flow.executors.shutil.which", return_value="/usr/bin/claude")
-    @patch("agy_flow.executors.subprocess.run")
+    @patch("agent_relay.executors.shutil.which", return_value="/usr/bin/claude")
+    @patch("agent_relay.executors.subprocess.run")
     def test_stderr_stdout_in_result(self, mock_run, mock_which):
         """Both stdout and stderr should be captured in the result."""
         mock_run.return_value = MagicMock(
@@ -84,8 +84,8 @@ class TestRunCliAgent(unittest.TestCase):
         self.assertIn("Main output", result["stdout"])
         self.assertIn("deprecation", result["stderr"])
 
-    @patch("agy_flow.executors.shutil.which", return_value="/usr/bin/claude")
-    @patch("agy_flow.executors.subprocess.run")
+    @patch("agent_relay.executors.shutil.which", return_value="/usr/bin/claude")
+    @patch("agent_relay.executors.subprocess.run")
     def test_duration_ms_nonzero(self, mock_run, mock_which):
         """duration_ms should be > 0 for a successful run."""
         mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="", args=[])
@@ -107,7 +107,7 @@ class TestBuildAgentPrompt(unittest.TestCase):
         self.assertIn("Test task", prompt)
         self.assertIn("writer", prompt)
         self.assertIn("worktree", prompt)
-        self.assertIn("agy-flow submit task-001", prompt)
+        self.assertIn("agent-relay submit task-001", prompt)
 
     def test_basic_prompt_reviewer(self):
         prompt = build_agent_prompt(
@@ -180,10 +180,10 @@ class TestCliAgentAdapterWithGateway(unittest.TestCase):
         cls.temp_path = Path(cls.temp_dir.name).resolve()
 
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         cls.old_root = cls.mod.PROJECT_ROOT
@@ -192,14 +192,14 @@ class TestCliAgentAdapterWithGateway(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         class DummyArgs:
             pass
@@ -227,7 +227,7 @@ class TestCliAgentAdapterWithGateway(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -239,12 +239,12 @@ class TestCliAgentAdapterWithGateway(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_root)
-        import agy_flow.git_ops
+        agent_relay.config.update_paths(cls.old_root)
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:

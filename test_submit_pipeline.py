@@ -1,7 +1,7 @@
-"""Tests for agy_flow/submit_pipeline.py — Submit Pipeline v1."""
+"""Tests for agent_relay/submit_pipeline.py — Submit Pipeline v1."""
 
-from agy_flow.state_machine import set_task_state, get_task_state
-from agy_flow.submit_pipeline import finalize_task
+from agent_relay.state_machine import set_task_state, get_task_state
+from agent_relay.submit_pipeline import finalize_task
 import json
 import os
 import sys
@@ -20,9 +20,9 @@ class TestSubmitPipeline(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
     @classmethod
     def tearDownClass(cls):
@@ -38,7 +38,7 @@ class TestSubmitPipeline(unittest.TestCase):
         if warnings is None:
             warnings = []
         return patch(
-            "agy_flow.submit_pipeline.evaluate_task_quality",
+            "agent_relay.submit_pipeline.evaluate_task_quality",
             return_value={
                 "task_id": "task-test",
                 "state": "approved",
@@ -94,7 +94,7 @@ class TestSubmitPipeline(unittest.TestCase):
         """If an unexpected error occurs, status=failed is returned."""
         set_task_state("task-fail", "approved")
         with patch(
-            "agy_flow.submit_pipeline.evaluate_task_quality",
+            "agent_relay.submit_pipeline.evaluate_task_quality",
             side_effect=Exception("Unexpected"),
         ):
             result = finalize_task("task-fail", dry_run=False)
@@ -126,10 +126,10 @@ class TestSubmitPipelineWithGatewayAPI(unittest.TestCase):
         cls.temp_path = Path(cls.temp_dir.name).resolve()
 
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         cls.old_root = cls.mod.PROJECT_ROOT
@@ -138,14 +138,14 @@ class TestSubmitPipelineWithGatewayAPI(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         class DummyArgs:
             pass
@@ -173,7 +173,7 @@ class TestSubmitPipelineWithGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -185,12 +185,12 @@ class TestSubmitPipelineWithGatewayAPI(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_root)
-        import agy_flow.git_ops
+        agent_relay.config.update_paths(cls.old_root)
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:

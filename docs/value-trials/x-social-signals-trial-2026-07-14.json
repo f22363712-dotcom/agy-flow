@@ -2,7 +2,7 @@
   "trial_id": "x-social-signals-trial-2026-07-14",
   "date": "2026-07-14",
   "task_title": "Add X social signals collection to intelligence-collector",
-  "method": "Track A is an estimated historical baseline from similar manual multi-agent tasks; Track B is the observed agy-flow-assisted Codex/Claude workflow for the X social signals task.",
+  "method": "Track A is an estimated historical baseline from similar manual multi-agent tasks; Track B is the observed agent-relay-assisted Codex/Claude workflow for the X social signals task.",
   "confidence": "medium-low for time metrics, medium for coordination metrics, high for review/test outcomes",
   "observed_outcomes": {
     "project": "D:\\my-automations",
@@ -64,6 +64,6 @@
     "The strongest workflow value was traceability: each phase had a named status, test count, and explicit next action.",
     "The weakest point remains coordination friction: the user still had to manually switch writer/reviewer roles and relay instructions to Claude.",
     "Time-to-done is intentionally omitted because no precise start/end timestamps were captured.",
-    "This trial supports continuing agy-flow, but the next product improvement should target automatic writer lease/handoff and trial data capture rather than more feature expansion."
+    "This trial supports continuing agent-relay, but the next product improvement should target automatic writer lease/handoff and trial data capture rather than more feature expansion."
   ]
 }

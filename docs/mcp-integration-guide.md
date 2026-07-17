@@ -1,12 +1,12 @@
-# agy-flow MCP Integration Guide
+# agent-relay MCP Integration Guide
 
 **Version**: 1.0 | **Last updated**: 2026-07-13
 
 ## Overview
 
-agy-flow provides an MCP server (Model Context Protocol) that exposes its
+agent-relay provides an MCP server (Model Context Protocol) that exposes its
 core capabilities as tools.  Any MCP-compatible client — Claude Desktop,
-Claude Code, VS Code extensions — can invoke agy-flow operations.
+Claude Code, VS Code extensions — can invoke agent-relay operations.
 
 The server communicates over **stdin/stdout** using **JSON-RPC 2.0**.
 
@@ -17,13 +17,13 @@ The server communicates over **stdin/stdout** using **JSON-RPC 2.0**.
 ### CLI
 
 ```bash
-agy-flow mcp
+agent-relay mcp
 ```
 
 Or directly:
 
 ```bash
-python -m agy_flow.mcp_server
+python -m agent_relay.mcp_server
 ```
 
 The server reads a JSON-RPC message per line from stdin and writes one
@@ -39,9 +39,9 @@ subprocess by an MCP client.
 ```json
 {
   "mcpServers": {
-    "agy-flow": {
+    "agent-relay": {
       "command": "python",
-      "args": ["-m", "agy_flow.mcp_server"],
+      "args": ["-m", "agent_relay.mcp_server"],
       "cwd": "/path/to/your/project"
     }
   }
@@ -56,7 +56,7 @@ host.  The core parts are:
 | Field | Value |
 |---|---|
 | `command` | `python` |
-| `args` | `["-m", "agy_flow.mcp_server"]` |
+| `args` | `["-m", "agent_relay.mcp_server"]` |
 | `cwd` | Your project root (where `.agents/` lives) |
 
 ---
@@ -192,8 +192,8 @@ Common success output:
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| `Server closed stdout (rc=2)` | `agy-flow.py` not found in CWD | Use absolute path to agy-flow.py |
-| Non-JSON line in stdout (e.g. "Executing: git...") | `run_cmd` logging to stdout | This was fixed in v1; update agy_flow/git_ops.py |
+| `Server closed stdout (rc=2)` | `agent-relay.py` not found in CWD | Use absolute path to agent-relay.py |
+| Non-JSON line in stdout (e.g. "Executing: git...") | `run_cmd` logging to stdout | This was fixed in v1; update agent_relay/git_ops.py |
 | `tools/list` returns 0 tools | Server started in wrong directory | Ensure cwd contains `.agents/` |
 | `python` not found | Python not in PATH | Use `sys.executable` or full path |
 | Timeout on communicate | MCP server waiting for stdin | Ensure stdin is flushed and closed |

@@ -1,7 +1,7 @@
-"""Tests for agy_flow/state_machine.py — Task State Machine v1."""
+"""Tests for agent_relay/state_machine.py — Task State Machine v1."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.state_machine import (
+from agent_relay.errors import AgentRelayError
+from agent_relay.state_machine import (
     get_task_state,
     set_task_state,
     transition_task_state,
@@ -25,9 +25,9 @@ class TestStateMachine(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
     @classmethod
     def tearDownClass(cls):
@@ -57,11 +57,11 @@ class TestStateMachine(unittest.TestCase):
 
     def test_transition_illegal_raises(self):
         set_task_state("task-003", "done", reason="init")
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             transition_task_state("task-003", "dispatched")
 
     def test_invalid_state_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             set_task_state("task-004", "nonexistent")
 
     def test_history_accumulates(self):
@@ -136,10 +136,10 @@ class TestStateMachineGatewayAPI(unittest.TestCase):
         cls.temp_path = Path(cls.temp_dir.name).resolve()
 
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         cls.old_root = cls.mod.PROJECT_ROOT
@@ -148,14 +148,14 @@ class TestStateMachineGatewayAPI(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         class DummyArgs:
             pass
@@ -183,7 +183,7 @@ class TestStateMachineGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -195,12 +195,12 @@ class TestStateMachineGatewayAPI(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_root)
-        import agy_flow.git_ops
+        agent_relay.config.update_paths(cls.old_root)
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:

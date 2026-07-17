@@ -1,4 +1,4 @@
-# Agent Guard Protocol — agy-flow
+# Agent Guard Protocol — agent-relay
 
 **Version**: 1.0 | **Last updated**: 2026-07-12
 
@@ -14,7 +14,7 @@ The Agent Guard Protocol is the access-control mechanism that prevents unauthori
 .agents/current_task.json
 ```
 
-This file lives in the **project root** (for worktree-less operations like review) and is also copied into **each worktree** at `.agents/current_task.json` during `agy-flow start`.
+This file lives in the **project root** (for worktree-less operations like review) and is also copied into **each worktree** at `.agents/current_task.json` during `agent-relay start`.
 
 ---
 
@@ -107,7 +107,7 @@ def check_guard():
 ### Assign as writer
 
 ```bash
-agy-flow assign claude --role writer --reviewer codex --reviewer antigravity
+agent-relay assign claude --role writer --reviewer codex --reviewer antigravity
 ```
 
 Sets `writer=claude`, adds `codex` and `antigravity` to `reviewers`.
@@ -115,7 +115,7 @@ Sets `writer=claude`, adds `codex` and `antigravity` to `reviewers`.
 ### Assign as reviewer
 
 ```bash
-agy-flow assign codex --role reviewer --mode review
+agent-relay assign codex --role reviewer --mode review
 ```
 
 Sets `role=reviewer`, adds `codex` to `reviewers` (keeping the existing writer).  
@@ -124,7 +124,7 @@ The legacy `agent` field is updated to `codex` so old guard logic still works.
 ### Assign with task ID
 
 ```bash
-agy-flow assign antigravity --task-id task-015
+agent-relay assign antigravity --task-id task-015
 ```
 
 Writes `task_id: "task-015"` alongside the guard metadata.
@@ -178,7 +178,7 @@ The HTTP gateway also supports the full protocol:
 - **As reviewer**: UI audit, accessibility checks, analysis only.
 
 ### DeepSeek (LLM-only — does not read guards)
-- DeepSeek is invoked via `agy-flow ask deepseek` or `POST /ask/deepseek` and does not read `current_task.json`. The calling agent is responsible for authorising the request.
+- DeepSeek is invoked via `agent-relay ask deepseek` or `POST /ask/deepseek` and does not read `current_task.json`. The calling agent is responsible for authorising the request.
 
 ---
 

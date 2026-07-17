@@ -1,4 +1,4 @@
-# agy-flow
+# agent-relay
 
 > **Task handoff & shared blackboard framework for cross-desktop AI tools**
 
@@ -9,23 +9,23 @@
 
 ## 💡 What is this?
 
-**agy-flow** is a lightweight collaboration framework that solves one specific, practical problem:
+**agent-relay** is a lightweight collaboration framework that solves one specific, practical problem:
 
 > You use multiple AI coding tools — Claude Code, Antigravity, Codex — each with their own strengths.
 > But when a task requires handoff between tools, context can only be transferred via **manual copy-paste**.
 
-agy-flow enables orderly, persistent handoff between these tools through **Git Worktree isolation** + **MCP shared blackboard** + **Writer/Reviewer guard protocol** — so you never have to manually pass context again.
+agent-relay enables orderly, persistent handoff between these tools through **Git Worktree isolation** + **MCP shared blackboard** + **Writer/Reviewer guard protocol** — so you never have to manually pass context again.
 
-### agy-flow vs ECC
+### agent-relay vs ECC
 
-| Dimension | ECC | agy-flow |
+| Dimension | ECC | agent-relay |
 |-----------|-----|----------|
 | Focus | Cross-platform **config unification** | Cross-tool **task handoff** |
 | Multi-agent | Role-switching within one session (prompt engineering) | Cross-session, cross-tool, persistent handoff |
 | Core mechanism | YAML agent definitions + skill reuse | Worktree isolation + MCP blackboard + Handoff protocol |
 | Scale | 278 skills / 67 agents | Focused core, extend as needed |
 
-**In short: ECC tells you "how to work inside each tool." agy-flow tells you "how to pass work between tools."**
+**In short: ECC tells you "how to work inside each tool." agent-relay tells you "how to pass work between tools."**
 
 ---
 
@@ -59,14 +59,14 @@ Tasks are automatically routed to the most cost-effective agent based on type (D
 ### Installation
 
 ```bash
-pip install agy-flow
+pip install agent-relay
 ```
 
 Or from source:
 
 ```bash
-git clone https://github.com/yourusername/agy-flow.git
-cd agy-flow
+git clone https://github.com/yourusername/agent-relay.git
+cd agent-relay
 pip install -e .
 ```
 
@@ -75,22 +75,22 @@ pip install -e .
 ```bash
 # Initialize in your project
 cd your-project
-agy-flow init
+agent-relay init
 
 # Create a task (auto-routes to best agent)
-agy-flow create "Implement user login API"
+agent-relay create "Implement user login API"
 
 # Start the task (creates worktree isolation)
-agy-flow start task-001
+agent-relay start task-001
 
 # Submit for review when done
-agy-flow submit task-001
+agent-relay submit task-001
 
 # View all tasks
-agy-flow status
+agent-relay status
 
 # Launch visual dashboard
-agy-flow serve --port 8080
+agent-relay serve --port 8080
 ```
 
 ### MCP Blackboard Configuration
@@ -99,9 +99,9 @@ agy-flow serve --port 8080
 ```json
 {
   "mcpServers": {
-    "agy-flow": {
+    "agent-relay": {
       "command": "python",
-      "args": ["-m", "agy_flow.mcp_server"]
+      "args": ["-m", "agent_relay.mcp_server"]
     }
   }
 }
@@ -109,12 +109,12 @@ agy-flow serve --port 8080
 
 **Codex CLI** — Add to `~/.codex/config.toml`:
 ```toml
-[mcp_servers.agy-flow]
+[mcp_servers.agent-relay]
 command = "python"
-args = ["-m", "agy_flow.mcp_server"]
+args = ["-m", "agent_relay.mcp_server"]
 ```
 
-Claude Code loads agy-flow automatically via the `UserPromptSubmit` hook.
+Claude Code loads agent-relay automatically via the `UserPromptSubmit` hook.
 
 ---
 
@@ -122,14 +122,14 @@ Claude Code loads agy-flow automatically via the `UserPromptSubmit` hook.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    agy-flow CLI (agy-flow.py)                 │
+│                    agent-relay CLI (agent-relay.py)                 │
 │    create / start / submit / merge / status / serve / mcp    │
 └──────────────────────┬───────────────────────────────────────┘
                        │
          ┌─────────────┼─────────────┐
          ▼             ▼             ▼
    ┌──────────┐  ┌──────────┐  ┌──────────────┐
-   │ Gateway  │  │  MCP     │  │  agy-flow    │
+   │ Gateway  │  │  MCP     │  │  agent-relay    │
    │ REST API │  │  Server  │  │  Library      │
    │(dashboard)│  │(blackboard)│  │              │
    └──────────┘  └──────────┘  └──────┬───────┘
@@ -152,13 +152,13 @@ Claude Code loads agy-flow automatically via the `UserPromptSubmit` hook.
 
 | Module | Responsibility |
 |--------|---------------|
-| `agy_flow/mcp_server.py` | MCP Server v2 — 12 tools + 3 resources |
-| `agy_flow/mcp_handoff_store.py` | Blackboard storage — per-task current + history archive |
-| `agy_flow/handoff.py` | Handoff protocol — writer lease + agent switching |
-| `agy_flow/router.py` | Smart routing — capability-based agent assignment |
-| `agy_flow/tasks.py` | Task lifecycle management |
-| `agy_flow/gateway.py` | HTTP Gateway + Dashboard UI |
-| `agy_flow/workspaces.py` | Git Worktree management |
+| `agent_relay/mcp_server.py` | MCP Server v2 — 12 tools + 3 resources |
+| `agent_relay/mcp_handoff_store.py` | Blackboard storage — per-task current + history archive |
+| `agent_relay/handoff.py` | Handoff protocol — writer lease + agent switching |
+| `agent_relay/router.py` | Smart routing — capability-based agent assignment |
+| `agent_relay/tasks.py` | Task lifecycle management |
+| `agent_relay/gateway.py` | HTTP Gateway + Dashboard UI |
+| `agent_relay/workspaces.py` | Git Worktree management |
 
 ---
 
@@ -227,4 +227,4 @@ See [CONTRIBUTING.en.md](CONTRIBUTING.en.md).
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 agy-flow contributors
+[MIT](LICENSE) © 2026 agent-relay contributors

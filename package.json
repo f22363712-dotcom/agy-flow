@@ -1,0 +1,22 @@
+{
+  "name": "agent-relay-promo-video",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render:promo": "remotion render src/index.tsx AgentRelayPromo agent-relay-promo.mp4 --codec=h264 --pixel-format=yuv420p",
+    "still:promo": "remotion still src/index.tsx AgentRelayPromo --frame=450 promo-still.png"
+  },
+  "dependencies": {
+    "@fontsource/outfit": "latest",
+    "@remotion/cli": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "remotion": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,4 +1,4 @@
-# agy-flow
+# agent-relay
 
 > **跨桌面 AI 工具的任务接力与共享黑板框架**
 
@@ -9,23 +9,23 @@
 
 ## 💡 这是什么？
 
-**agy-flow** 是一个轻量级的协作框架，解决一个具体而现实的问题：
+**agent-relay** 是一个轻量级的协作框架，解决一个具体而现实的问题：
 
 > 你同时使用 Claude Code、Antigravity、Codex 等多个 AI 编码工具，每个工具各有所长。
 > 但一个任务需要多个工具接力时，上下文只能靠**手动复制粘贴**。
 
-agy-flow 通过 **Git Worktree 隔离** + **MCP 共享黑板** + **Writer/Reviewer 守卫协议**，让这些工具在同一个项目中有序接力，而不需要你手动传递上下文。
+agent-relay 通过 **Git Worktree 隔离** + **MCP 共享黑板** + **Writer/Reviewer 守卫协议**，让这些工具在同一个项目中有序接力，而不需要你手动传递上下文。
 
-### agy-flow vs ECC
+### agent-relay vs ECC
 
-| 维度 | ECC | agy-flow |
+| 维度 | ECC | agent-relay |
 |------|-----|----------|
 | 定位 | 跨平台**配置统一**层 | 跨工具**任务接力**框架 |
 | 多 Agent 协同 | 同 session 内角色切换（prompt engineering） | 跨 session、跨工具、持久化接力 |
 | 核心机制 | YAML agent 定义 + skill 复用 | Worktree 隔离 + MCP 黑板 + Handoff 协议 |
 | 规模 | 278 skills / 67 agents | 聚焦核心，按需扩展 |
 
-**简单说：ECC 告诉你"在每个工具里怎么干活"，agy-flow 告诉你"怎么把活在不同工具之间传来传去"。**
+**简单说：ECC 告诉你"在每个工具里怎么干活"，agent-relay 告诉你"怎么把活在不同工具之间传来传去"。**
 
 ---
 
@@ -59,14 +59,14 @@ Antigravity ──agy_handoff_write──→ .agents/handoffs/current/task-001.j
 ### 安装
 
 ```bash
-pip install agy-flow
+pip install agent-relay
 ```
 
 或者直接从源码：
 
 ```bash
-git clone https://github.com/yourusername/agy-flow.git
-cd agy-flow
+git clone https://github.com/yourusername/agent-relay.git
+cd agent-relay
 pip install -e .
 ```
 
@@ -75,22 +75,22 @@ pip install -e .
 ```bash
 # 初始化
 cd your-project
-agy-flow init
+agent-relay init
 
 # 创建任务（自动路由到最佳 Agent）
-agy-flow create "编写用户登录 API"
+agent-relay create "编写用户登录 API"
 
 # 启动任务（拉起 worktree 隔离区）
-agy-flow start task-001
+agent-relay start task-001
 
 # 完成开发后提审
-agy-flow submit task-001
+agent-relay submit task-001
 
 # 查看所有任务看板
-agy-flow status
+agent-relay status
 
 # 启动可视化看板
-agy-flow serve --port 8080
+agent-relay serve --port 8080
 ```
 
 ### MCP 黑板配置
@@ -99,9 +99,9 @@ agy-flow serve --port 8080
 ```json
 {
   "mcpServers": {
-    "agy-flow": {
+    "agent-relay": {
       "command": "python",
-      "args": ["-m", "agy_flow.mcp_server"]
+      "args": ["-m", "agent_relay.mcp_server"]
     }
   }
 }
@@ -109,12 +109,12 @@ agy-flow serve --port 8080
 
 **Codex CLI** — 在 `~/.codex/config.toml` 中添加：
 ```toml
-[mcp_servers.agy-flow]
+[mcp_servers.agent-relay]
 command = "python"
-args = ["-m", "agy_flow.mcp_server"]
+args = ["-m", "agent_relay.mcp_server"]
 ```
 
-Claude Code 通过内置的 `UserPromptSubmit` hook 自动加载 agy-flow 引导。
+Claude Code 通过内置的 `UserPromptSubmit` hook 自动加载 agent-relay 引导。
 
 ---
 
@@ -122,14 +122,14 @@ Claude Code 通过内置的 `UserPromptSubmit` hook 自动加载 agy-flow 引导
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    agy-flow CLI (agy-flow.py)                 │
+│                    agent-relay CLI (agent-relay.py)                 │
 │    create / start / submit / merge / status / serve / mcp    │
 └──────────────────────┬───────────────────────────────────────┘
                        │
          ┌─────────────┼─────────────┐
          ▼             ▼             ▼
    ┌──────────┐  ┌──────────┐  ┌──────────────┐
-   │ Gateway  │  │  MCP     │  │  agy-flow    │
+   │ Gateway  │  │  MCP     │  │  agent-relay    │
    │ REST API │  │  Server  │  │  Library     │
    │(dashboard)│  │(blackboard)│  │              │
    └──────────┘  └──────────┘  └──────┬───────┘
@@ -152,13 +152,13 @@ Claude Code 通过内置的 `UserPromptSubmit` hook 自动加载 agy-flow 引导
 
 | 模块 | 职责 |
 |------|------|
-| `agy_flow/mcp_server.py` | MCP Server v2 — 12 tools + 3 resources |
-| `agy_flow/mcp_handoff_store.py` | 黑板存储 — per-task current + 历史归档 |
-| `agy_flow/handoff.py` | 接力协议 — writer lease + agent 切换 |
-| `agy_flow/router.py` | 智能路由 — 按能力分配 Agent |
-| `agy_flow/tasks.py` | 任务生命周期 |
-| `agy_flow/gateway.py` | HTTP Gateway + Dashboard UI |
-| `agy_flow/workspaces.py` | Git Worktree 管理 |
+| `agent_relay/mcp_server.py` | MCP Server v2 — 12 tools + 3 resources |
+| `agent_relay/mcp_handoff_store.py` | 黑板存储 — per-task current + 历史归档 |
+| `agent_relay/handoff.py` | 接力协议 — writer lease + agent 切换 |
+| `agent_relay/router.py` | 智能路由 — 按能力分配 Agent |
+| `agent_relay/tasks.py` | 任务生命周期 |
+| `agent_relay/gateway.py` | HTTP Gateway + Dashboard UI |
+| `agent_relay/workspaces.py` | Git Worktree 管理 |
 
 ---
 
@@ -225,4 +225,4 @@ python scripts/mcp_client_smoke.py
 
 ## 📄 许可证
 
-[MIT](LICENSE) © 2026 agy-flow contributors
+[MIT](LICENSE) © 2026 agent-relay contributors

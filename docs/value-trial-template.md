@@ -1,4 +1,4 @@
-# agy-flow Value Trial Record
+# agent-relay Value Trial Record
 
 **Trial ID**: `<!-- e.g. trial-001 -->`  
 **Date**: `<!-- YYYY-MM-DD -->`  
@@ -47,15 +47,15 @@ What got in the way? Where did you get stuck?
 
 ---
 
-## Track B (agy-flow)
+## Track B (agent-relay)
 
 ### Preparation
 
 | Item | Value |
 |---|---|
-| `agy-flow init` | ✅ / ❌ |
-| agy-flow version | `<!-- output of agy-flow doctor -->` |
-| Agents available | `<!-- output of agy-flow agents --json -->` |
+| `agent-relay init` | ✅ / ❌ |
+| agent-relay version | `<!-- output of agent-relay doctor -->` |
+| Agents available | `<!-- output of agent-relay agents --json -->` |
 
 ### Steps Completed
 
@@ -97,14 +97,14 @@ What got in the way? Where did you get stuck?
 ### Friction Notes
 
 ```
-What got in the way? What was confusing about agy-flow?
+What got in the way? What was confusing about agent-relay?
 ```
 
 ---
 
 ## Comparison
 
-| Metric | Track A (Manual) | Track B (agy-flow) | Delta |
+| Metric | Track A (Manual) | Track B (agent-relay) | Delta |
 |---|---|---|---|
 | context_copy_count | | | |
 | manual_decision_count | | | |
@@ -125,7 +125,7 @@ What got in the way? What was confusing about agy-flow?
 
 Based on the go/no-go criteria in `docs/value-trial-plan.md`:
 
-- [ ] **Continue**: agy-flow adds measurable value.
+- [ ] **Continue**: agent-relay adds measurable value.
   - Context copy reduced: Y/N
   - Manual decisions reduced: Y/N
   - Time not worse: Y/N
@@ -133,19 +133,19 @@ Based on the go/no-go criteria in `docs/value-trial-plan.md`:
   - Bug caught by review/quality: Y/N
 
 - [ ] **Pause**: Value is unclear; focus on reducing friction.
-- [ ] **Stop**: agy-flow does not solve a real problem.
+- [ ] **Stop**: agent-relay does not solve a real problem.
 
 ### Free-form Feedback
 
 ```
-What would make agy-flow more useful?
-What was the single best thing about using agy-flow?
+What would make agent-relay more useful?
+What was the single best thing about using agent-relay?
 What was the single worst thing?
 ```
 
 ---
 
-## JSON Summary (for `agy-flow value-report`)
+## JSON Summary (for `agent-relay value-report`)
 
 ```json
 {

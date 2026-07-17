@@ -1,6 +1,6 @@
-# Contributing to agy-flow
+# Contributing to agent-relay
 
-感谢你考虑为 agy-flow 贡献！🎉
+感谢你考虑为 agent-relay 贡献！🎉
 
 ## 行为准则
 
@@ -56,8 +56,8 @@
 ## 项目结构
 
 ```
-agy-flow/
-├── agy_flow/           # 核心库
+agent-relay/
+├── agent_relay/           # 核心库
 │   ├── mcp_server.py   # MCP Server
 │   ├── handoff.py      # 接力协议
 │   ├── router.py       # 路由

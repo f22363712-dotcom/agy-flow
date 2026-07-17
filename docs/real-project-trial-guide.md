@@ -1,6 +1,6 @@
-# agy-flow Real Project Trial Guide
+# agent-relay Real Project Trial Guide
 
-This guide walks you through using agy-flow in a real software project.
+This guide walks you through using agent-relay in a real software project.
 
 ---
 
@@ -14,7 +14,7 @@ This guide walks you through using agy-flow in a real software project.
 
 ```bash
 cd your-project
-agy-flow init
+agent-relay init
 ```
 
 This creates:
@@ -22,17 +22,17 @@ This creates:
 - `.agents/tasks/board.md` — task board
 - `.agents/tasks/task_template.md` — task template
 - `.agents/costs.json` — cost tracking
-- `.gitignore` entries for agy-flow artifacts
+- `.gitignore` entries for agent-relay artifacts
 
 ## Step 2: Create a Task
 
 ```bash
-agy-flow create "Implement user login API"
+agent-relay create "Implement user login API"
 ```
 
 Or specify an agent:
 ```bash
-agy-flow create "Design login page" --agent antigravity
+agent-relay create "Design login page" --agent antigravity
 ```
 
 This creates:
@@ -43,8 +43,8 @@ This creates:
 ## Step 3: Preview the Route
 
 ```bash
-agy-flow route "Implement user login API"
-agy-flow route-task task-001
+agent-relay route "Implement user login API"
+agent-relay route-task task-001
 ```
 
 Shows the capability-aware routing plan: primary agent, fallbacks, reviewers.
@@ -52,7 +52,7 @@ Shows the capability-aware routing plan: primary agent, fallbacks, reviewers.
 ## Step 4: Auto Dispatch (Dry Run First)
 
 ```bash
-agy-flow auto task-001 --dry-run
+agent-relay auto task-001 --dry-run
 ```
 
 This shows what would happen without actually dispatching.
@@ -61,17 +61,17 @@ This shows what would happen without actually dispatching.
 
 For LLM agents (DeepSeek):
 ```bash
-agy-flow dispatch task-001 --agent deepseek --mock
+agent-relay dispatch task-001 --agent deepseek --mock
 ```
 
 For CLI agents (Claude, Gemini):
 ```bash
-agy-flow dispatch task-001 --agent claude
+agent-relay dispatch task-001 --agent claude
 ```
 
 For human-in-loop (Codex, Antigravity):
 ```bash
-agy-flow dispatch task-001 --agent codex
+agent-relay dispatch task-001 --agent codex
 ```
 This updates `.agents/current_task.json` and gives you instructions.
 
@@ -79,26 +79,26 @@ This updates `.agents/current_task.json` and gives you instructions.
 
 After the writer completes, continue the review loop:
 ```bash
-agy-flow continue run-xxxx --mock
+agent-relay continue run-xxxx --mock
 ```
 
 Or use auto-dispatch to let the system decide:
 ```bash
-agy-flow auto task-001 --mock
+agent-relay auto task-001 --mock
 ```
 
 ## Step 7: Check Quality Gate
 
 ```bash
-agy-flow quality task-001
-agy-flow quality task-001 --json
+agent-relay quality task-001
+agent-relay quality task-001 --json
 ```
 
 ## Step 8: Finalize
 
 ```bash
-agy-flow finalize task-001 --dry-run
-agy-flow finalize task-001
+agent-relay finalize task-001 --dry-run
+agent-relay finalize task-001
 ```
 
 This runs the quality gate, then transitions the task to `submitted`.
@@ -106,9 +106,9 @@ This runs the quality gate, then transitions the task to `submitted`.
 ## Step 9: Check Status
 
 ```bash
-agy-flow status task-001   # detailed task summary
-agy-flow doctor            # system health check
-agy-flow agents            # agent availability
+agent-relay status task-001   # detailed task summary
+agent-relay doctor            # system health check
+agent-relay agents            # agent availability
 ```
 
 ---
@@ -136,29 +136,29 @@ create → route → auto-dispatch
 ### "CLI not found"
 Install the CLI tool or use `--mock` for testing:
 ```bash
-agy-flow dispatch task-001 --agent deepseek --mock
+agent-relay dispatch task-001 --agent deepseek --mock
 ```
 
 ### "Task not found"
 Ensure the task ID is correct:
 ```bash
-agy-flow status
-agy-flow status task-001
+agent-relay status
+agent-relay status task-001
 ```
 
 ### "Quality gate blocked"
-Run `agy-flow quality` to see specific blocking issues.
+Run `agent-relay quality` to see specific blocking issues.
 Common causes:
 - No writer run yet
 - Reviewer requested revision
 - Task is in blocked state
 
 ### "Agent unavailable"
-Run `agy-flow doctor` or `agy-flow agents` to check availability.
-Run `agy-flow probe all` for detailed connector status.
+Run `agent-relay doctor` or `agent-relay agents` to check availability.
+Run `agent-relay probe all` for detailed connector status.
 
 ### Gateway not starting
 Check port availability:
 ```bash
-agy-flow serve --port 8001
+agent-relay serve --port 8001
 ```

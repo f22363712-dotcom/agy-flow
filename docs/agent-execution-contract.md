@@ -1,21 +1,21 @@
-# Agent Execution Contract — agy-flow
+# Agent Execution Contract — agent-relay
 
 **Version**: 1.0 | **Last updated**: 2026-07-13
 
 ## Purpose
 
-When agy-flow dispatches a task to an external CLI agent (Claude Code, Gemini CLI, etc.), it passes a structured task-context prompt. This document defines what that prompt contains and what the external agent is expected to do (and not do).
+When agent-relay dispatches a task to an external CLI agent (Claude Code, Gemini CLI, etc.), it passes a structured task-context prompt. This document defines what that prompt contains and what the external agent is expected to do (and not do).
 
 ---
 
 ## Prompt Contract
 
-Every dispatch to a CLI agent is built by `build_agent_prompt()` in `agy_flow/executors.py`. The prompt contains these sections:
+Every dispatch to a CLI agent is built by `build_agent_prompt()` in `agent_relay/executors.py`. The prompt contains these sections:
 
 ### 1. Header
 
 ```
-You are assigned to work on task {task_id} inside agy-flow.
+You are assigned to work on task {task_id} inside agent-relay.
 ```
 
 Identifies the task and the framework.
@@ -68,14 +68,14 @@ Always present at the end of every prompt:
 1. Read `.agents/current_task.json` to verify your assignment.
 2. Work inside the worktree directory only.
 3. Do **NOT** modify files outside the worktree.
-4. When finished, run: `agy-flow submit {task_id}`
+4. When finished, run: `agent-relay submit {task_id}`
 5. Do **NOT** commit or push to the main branch directly.
 
 ---
 
 ## CLI Agent Behavioural Contract
 
-When a CLI agent is invoked via `run_cli_agent()` in `agy_flow/executors.py`, the following contract is expected:
+When a CLI agent is invoked via `run_cli_agent()` in `agent_relay/executors.py`, the following contract is expected:
 
 | Aspect | Expectation |
 |---|---|
@@ -85,7 +85,7 @@ When a CLI agent is invoked via `run_cli_agent()` in `agy_flow/executors.py`, th
 | **Timeout** | Default 120 seconds; configurable via `timeout` kwarg |
 | **Side effects** | Agent MUST NOT modify files outside the assigned worktree |
 | **Guard check** | Agent MUST read `.agents/current_task.json` before making changes |
-| **Submission** | Agent MUST run `agy-flow submit {task_id}` when done (writer mode) |
+| **Submission** | Agent MUST run `agent-relay submit {task_id}` when done (writer mode) |
 
 ---
 
@@ -101,7 +101,7 @@ When a CLI agent is invoked via `run_cli_agent()` in `agy_flow/executors.py`, th
 ## Example Prompt (abridged)
 
 ```
-You are assigned to work on task task-012 inside agy-flow.
+You are assigned to work on task task-012 inside agent-relay.
 
 ## Task: task-012 - Implement user login API
 
@@ -127,7 +127,7 @@ You have full write access to the worktree.
 1. Read .agents/current_task.json to verify your assignment.
 2. Work inside the worktree directory only.
 3. Do NOT modify files outside the worktree.
-4. When finished, run: agy-flow submit task-012
+4. When finished, run: agent-relay submit task-012
 5. Do NOT commit or push to the main branch directly.
 ```
 

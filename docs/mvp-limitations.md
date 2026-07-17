@@ -1,4 +1,4 @@
-# agy-flow MVP Limitations v1
+# agent-relay MVP Limitations v1
 
 This document records the known limitations of the current MVP.
 
@@ -22,7 +22,7 @@ This document records the known limitations of the current MVP.
 
 - If the CLI is not installed, `dispatch --agent claude` returns `unavailable`.
 - The system never crashes, but the agent won't run.
-- Use `agy-flow doctor` or `agy-flow probe claude` to check availability.
+- Use `agent-relay doctor` or `agent-relay probe claude` to check availability.
 
 ---
 
@@ -48,7 +48,7 @@ The Dashboard is a **simple control console**, not a full IDE.
 
 ## 5. No Bypass of API/Subscription Limits
 
-agy-flow does **not** bypass API rate limits, subscription tiers, or platform restrictions of any agent runtime.
+agent-relay does **not** bypass API rate limits, subscription tiers, or platform restrictions of any agent runtime.
 
 - DeepSeek calls go through the official OpenAI-compatible API and require a valid API key.
 - Claude Code requires a valid Claude subscription.
@@ -59,7 +59,7 @@ agy-flow does **not** bypass API rate limits, subscription tiers, or platform re
 
 ## 6. Local-First Architecture
 
-agy-flow is designed for **local, single-user** use.
+agent-relay is designed for **local, single-user** use.
 
 - State files, run records, and task artifacts live on the local filesystem.
 - There is no built-in multi-user, team sync, or server deployment.

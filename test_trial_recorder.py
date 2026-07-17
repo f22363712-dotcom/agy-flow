@@ -1,8 +1,8 @@
-"""Tests for agy_flow/trial_recorder.py — Value Trial Recorder."""
+"""Tests for agent_relay/trial_recorder.py — Value Trial Recorder."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.trial_recorder import trial_start, trial_event, trial_stop, trial_export
-import agy_flow.config
+from agent_relay.errors import AgentRelayError
+from agent_relay.trial_recorder import trial_start, trial_event, trial_stop, trial_export
+import agent_relay.config
 import json
 import os
 import sys
@@ -20,8 +20,8 @@ class TestTrialRecorder(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        agy_flow.config.update_paths(cls.temp_path)
-        agy_flow.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+        agent_relay.config.update_paths(cls.temp_path)
+        agent_relay.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -31,7 +31,7 @@ class TestTrialRecorder(unittest.TestCase):
             pass
 
     def test_start_creates_trial(self):
-        record = trial_start("test-trial", task_title="Test task", track="agy-flow")
+        record = trial_start("test-trial", task_title="Test task", track="agent-relay")
         self.assertEqual(record["trial_id"], "test-trial")
         self.assertEqual(record["track"], "track_b")
         self.assertIsNotNone(record["started_at"])
@@ -44,7 +44,7 @@ class TestTrialRecorder(unittest.TestCase):
 
     def test_start_twice_raises(self):
         trial_start("test-dup", task_title="Test")
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             trial_start("test-dup", task_title="Test")
 
     def test_event_increments_counter(self):
@@ -61,7 +61,7 @@ class TestTrialRecorder(unittest.TestCase):
 
         # Events list
         trail = json.loads(
-            (agy_flow.config.AGENTS_DIR / "trials" / "test-events.json").read_text()
+            (agent_relay.config.AGENTS_DIR / "trials" / "test-events.json").read_text()
         )
         self.assertEqual(len(trail["events"]), 3)
 
@@ -84,7 +84,7 @@ class TestTrialRecorder(unittest.TestCase):
         self.assertEqual(exported["track_a"]["artifacts_generated"], 2)
 
     def test_export_to_file(self):
-        trial_start("test-file", task_title="File export", track="agy-flow")
+        trial_start("test-file", task_title="File export", track="agent-relay")
         trial_event("test-file", "copy", count=2)
 
         output_path = str(self.temp_path / "exported.json")
@@ -97,12 +97,12 @@ class TestTrialRecorder(unittest.TestCase):
         self.assertEqual(data["track_b"]["context_copy_count"], 2)
 
     def test_missing_trial_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             trial_event("nonexistent", "copy")
 
     def test_invalid_event_type_raises(self):
         trial_start("test-invalid-event", task_title="X")
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             trial_event("test-invalid-event", "invalid_type")
 
     def test_notes_increment(self):

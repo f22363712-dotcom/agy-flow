@@ -1,5 +1,5 @@
 {
-    "title": "MCP共享黑板设计审查：扩展agy-flow MCP Server支持跨Agent交接",
+    "title": "MCP共享黑板设计审查：扩展agent-relay MCP Server支持跨Agent交接",
     "task_type": "logic_or_backend",
     "confidence": 0.72,
     "scores": {

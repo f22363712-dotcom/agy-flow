@@ -1,11 +1,11 @@
-# Agent Output Contract — agy-flow
+# Agent Output Contract — agent-relay
 
 **Version**: 1.0 | **Last updated**: 2026-07-13
 
 ## Purpose
 
 When an external CLI agent (Claude, Gemini, etc.) or an LLM adapter (DeepSeek)
-completes its work, agy-flow parses the agent's free-text response into a
+completes its work, agent-relay parses the agent's free-text response into a
 structured ``parsed_output`` that drives the next action — such as
 automatically dispatching a reviewer.
 
@@ -64,7 +64,7 @@ At the end of the agent's response, include a fenced JSON block:
 |---|---|
 | `review` | Writer is done and wants a reviewer to inspect |
 | `revise` | Writer encountered issues and needs to revise later |
-| `submit` | Work is ready for agy-flow submit (no review needed) |
+| `submit` | Work is ready for agent-relay submit (no review needed) |
 | `manual` | Requires human decision before continuing |
 | `none` | No further action required |
 
@@ -96,7 +96,7 @@ When acting as **reviewer** (role = `"reviewer"`):
 
 ## Parse Behaviour (for system implementors)
 
-The parser in `agy_flow/output_parser.py`:
+The parser in `agent_relay/output_parser.py`:
 
 1. Scans the agent output for a `` ```json `` fenced code block.
 2. Parses the JSON inside — if valid, merges with defaults.

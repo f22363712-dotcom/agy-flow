@@ -1,6 +1,6 @@
-"""Tests for agy_flow/output_parser.py — Agent Output Contract Parser."""
+"""Tests for agent_relay/output_parser.py — Agent Output Contract Parser."""
 
-from agy_flow.output_parser import parse_agent_output
+from agent_relay.output_parser import parse_agent_output
 import json
 import sys
 import unittest

@@ -1,8 +1,8 @@
-"""Tests for agy_flow/quality_gate.py — Quality Gate v1."""
+"""Tests for agent_relay/quality_gate.py — Quality Gate v1."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.state_machine import set_task_state
-from agy_flow.quality_gate import evaluate_task_quality
+from agent_relay.errors import AgentRelayError
+from agent_relay.state_machine import set_task_state
+from agent_relay.quality_gate import evaluate_task_quality
 import json
 import os
 import sys
@@ -21,9 +21,9 @@ class TestQualityGate(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
     @classmethod
     def tearDownClass(cls):
@@ -34,7 +34,7 @@ class TestQualityGate(unittest.TestCase):
 
     def _mock_runs(self, runs):
         """Patch list_runs to return given runs."""
-        return patch("agy_flow.quality_gate.list_runs", return_value=runs)
+        return patch("agent_relay.quality_gate.list_runs", return_value=runs)
 
     def test_approved_with_writer_and_reviewer_ready(self):
         """approved task + writer + reviewer -> ready."""
@@ -204,10 +204,10 @@ class TestQualityGateWithGatewayAPI(unittest.TestCase):
         cls.temp_path = Path(cls.temp_dir.name).resolve()
 
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         cls.old_root = cls.mod.PROJECT_ROOT
@@ -216,14 +216,14 @@ class TestQualityGateWithGatewayAPI(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         class DummyArgs:
             pass
@@ -251,7 +251,7 @@ class TestQualityGateWithGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -263,12 +263,12 @@ class TestQualityGateWithGatewayAPI(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_root)
-        import agy_flow.git_ops
+        agent_relay.config.update_paths(cls.old_root)
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:

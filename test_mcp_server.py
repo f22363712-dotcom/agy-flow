@@ -1,4 +1,4 @@
-"""Tests for agy_flow/mcp_server.py — MCP Server v2.
+"""Tests for agent_relay/mcp_server.py — MCP Server v2.
 
 v2 adds 3 handoff tools + 3 resources.  Tests cover tools list, resource
 listing/reading, initialize capabilities, and the full handoff tool flow.
@@ -6,8 +6,8 @@ listing/reading, initialize capabilities, and the full handoff tool flow.
 All calls run in an isolated temporary directory.
 """
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.mcp_server import (
+from agent_relay.errors import AgentRelayError
+from agent_relay.mcp_server import (
     _TOOLS,
     _RESOURCE_TEMPLATES,
     _STATIC_RESOURCES,
@@ -173,11 +173,11 @@ class TestMCPCallsWithProject(unittest.TestCase):
         cls.temp_path = Path(cls.temp_dir.name).resolve()
 
         # Import and init project
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        from agy_flow.tasks import init_project
+        from agent_relay.tasks import init_project
 
         class DummyArgs:
             pass
@@ -191,13 +191,13 @@ class TestMCPCallsWithProject(unittest.TestCase):
             config_path.write_text(json.dumps(cfg, indent=4), encoding="utf-8")
 
         # Also need to init git
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls._orig_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls._orig_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         # Create a task so we have something to work with
-        from agy_flow.tasks import create_task
+        from agent_relay.tasks import create_task
 
         class CreateArgs:
             title = "MCP test task"
@@ -208,9 +208,9 @@ class TestMCPCallsWithProject(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls._orig_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls._orig_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:
@@ -253,7 +253,7 @@ class TestMCPCallsWithProject(unittest.TestCase):
             "params": {"name": "agy_route_task", "arguments": {}},
         }
         resp = _handle_message(msg)
-        # Should return an AgyFlowError (code -32000)
+        # Should return an AgentRelayError (code -32000)
         self.assertIn(
             "error",
             resp,
@@ -282,7 +282,7 @@ class TestMCPCallsWithProject(unittest.TestCase):
             "params": {"name": "agy_dispatch", "arguments": {"task_id": "task-001"}},
         }
         resp = _handle_message(msg)
-        # Should be an AgyFlowError for missing agent
+        # Should be an AgentRelayError for missing agent
         if "error" not in resp:
             result = json.loads(resp["result"]["content"][0]["text"])
             self.assertIn("error", str(result))
@@ -398,7 +398,7 @@ class TestMCPCallsWithProject(unittest.TestCase):
         sys.stdin = io.StringIO("not-json\n")
         sys.stdout = io.StringIO()
         try:
-            from agy_flow.mcp_server import run_mcp_server
+            from agent_relay.mcp_server import run_mcp_server
 
             # Run one iteration
             for line in sys.stdin:
@@ -433,7 +433,7 @@ class TestMCPCallsWithProject(unittest.TestCase):
         self.assertIn("agent", result)
 
     def test_invalid_task_id_format(self):
-        """Malformed task_id returns AgyFlowError."""
+        """Malformed task_id returns AgentRelayError."""
         msg = {
             "jsonrpc": "2.0",
             "id": 1,
@@ -445,7 +445,7 @@ class TestMCPCallsWithProject(unittest.TestCase):
         self.assertIn("Invalid task_id", resp["error"]["message"])
 
     def test_invalid_run_id_format(self):
-        """Malformed run_id returns AgyFlowError."""
+        """Malformed run_id returns AgentRelayError."""
         msg = {
             "jsonrpc": "2.0",
             "id": 1,
@@ -457,7 +457,7 @@ class TestMCPCallsWithProject(unittest.TestCase):
         self.assertIn("Invalid run_id", resp["error"]["message"])
 
     def test_missing_required_arg_returns_error(self):
-        """Missing required param returns clean AgyFlowError, not KeyError."""
+        """Missing required param returns clean AgentRelayError, not KeyError."""
         # agy_dispatch with no agent
         msg = {
             "jsonrpc": "2.0",

@@ -1,12 +1,12 @@
-"""Tests for agy_flow/adapter.py — Agent Adapter v1 dispatch.
+"""Tests for agent_relay/adapter.py — Agent Adapter v1 dispatch.
 
 All tests run in an isolated temporary directory to avoid polluting the
 real repository.
 """
 
-from agy_flow.config import update_paths
-from agy_flow.errors import AgyFlowError
-from agy_flow.adapter import (
+from agent_relay.config import update_paths
+from agent_relay.errors import AgentRelayError
+from agent_relay.adapter import (
     dispatch,
     get_adapter,
     DeepSeekAdapter,
@@ -53,7 +53,7 @@ class TestAdapterUnit(unittest.TestCase):
         self.assertEqual(get_adapter("CODEX").agent_name, "codex")
 
     def test_get_adapter_invalid(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             get_adapter("nonexistent")
 
     def test_register_adapter_overrides(self):
@@ -68,7 +68,7 @@ class TestAdapterUnit(unittest.TestCase):
         fake = FakeAdapter()
         _ADAPTERS["deepseek"] = fake
         # Restore real adapter
-        from agy_flow.adapter import register_adapter
+        from agent_relay.adapter import register_adapter
 
         register_adapter(DeepSeekAdapter)
         restored = get_adapter("deepseek")
@@ -87,34 +87,34 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
         os.environ["AGY_FLOW_TESTING"] = "1"
 
         # Save original module paths
-        import agy_flow.config
-        import agy_flow.tasks
+        import agent_relay.config
+        import agent_relay.tasks
 
         # Point config at temp dir
-        agy_flow.config._orig_paths = (
-            agy_flow.config.PROJECT_ROOT,
-            agy_flow.config.AGENTS_DIR,
-            agy_flow.config.TASKS_DIR,
-            agy_flow.config.RUNS_DIR,
+        agent_relay.config._orig_paths = (
+            agent_relay.config.PROJECT_ROOT,
+            agent_relay.config.AGENTS_DIR,
+            agent_relay.config.TASKS_DIR,
+            agent_relay.config.RUNS_DIR,
         )
-        agy_flow.config.PROJECT_ROOT = cls.temp_path
-        agy_flow.config.AGENTS_DIR = cls.temp_path / ".agents"
-        agy_flow.config.TASKS_DIR = agy_flow.config.AGENTS_DIR / "tasks"
-        agy_flow.config.RUNS_DIR = agy_flow.config.AGENTS_DIR / "runs"
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.PROJECT_ROOT = cls.temp_path
+        agent_relay.config.AGENTS_DIR = cls.temp_path / ".agents"
+        agent_relay.config.TASKS_DIR = agent_relay.config.AGENTS_DIR / "tasks"
+        agent_relay.config.RUNS_DIR = agent_relay.config.AGENTS_DIR / "runs"
+        agent_relay.config.update_paths(cls.temp_path)
 
-        # Also patch agy_flow.tasks module references
-        agy_flow.tasks.PROJECT_ROOT = cls.temp_path
-        agy_flow.tasks.AGENTS_DIR = agy_flow.config.AGENTS_DIR
-        agy_flow.tasks.TASKS_DIR = agy_flow.config.TASKS_DIR
+        # Also patch agent_relay.tasks module references
+        agent_relay.tasks.PROJECT_ROOT = cls.temp_path
+        agent_relay.tasks.AGENTS_DIR = agent_relay.config.AGENTS_DIR
+        agent_relay.tasks.TASKS_DIR = agent_relay.config.TASKS_DIR
 
         # Sync adapter module paths
-        import agy_flow.adapter
+        import agent_relay.adapter
 
-        agy_flow.adapter.RUNS_DIR = agy_flow.config.RUNS_DIR
+        agent_relay.adapter.RUNS_DIR = agent_relay.config.RUNS_DIR
 
         # Init project in temp dir
-        from agy_flow.tasks import init_project
+        from agent_relay.tasks import init_project
 
         class DummyArgs:
             pass
@@ -123,10 +123,10 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
 
         # Patch git_ops module path AFTER init_project (init_project writes
         # back to config but does not touch git_ops)
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls._orig_gitops_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls._orig_gitops_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         # Overwrite worktrees_dir in temp config
         config_path = cls.temp_path / ".agents" / "config.json"
@@ -138,19 +138,19 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # Restore module paths
-        import agy_flow.config
-        import agy_flow.tasks
-        import agy_flow.adapter
-        import agy_flow.git_ops
+        import agent_relay.config
+        import agent_relay.tasks
+        import agent_relay.adapter
+        import agent_relay.git_ops
 
-        if hasattr(agy_flow.config, "_orig_paths"):
-            agy_flow.config.PROJECT_ROOT = agy_flow.config._orig_paths[0]
-            agy_flow.config.AGENTS_DIR = agy_flow.config._orig_paths[1]
-            agy_flow.config.TASKS_DIR = agy_flow.config._orig_paths[2]
-            agy_flow.config.RUNS_DIR = agy_flow.config._orig_paths[3]
+        if hasattr(agent_relay.config, "_orig_paths"):
+            agent_relay.config.PROJECT_ROOT = agent_relay.config._orig_paths[0]
+            agent_relay.config.AGENTS_DIR = agent_relay.config._orig_paths[1]
+            agent_relay.config.TASKS_DIR = agent_relay.config._orig_paths[2]
+            agent_relay.config.RUNS_DIR = agent_relay.config._orig_paths[3]
 
         if hasattr(cls, "_orig_gitops_root"):
-            agy_flow.git_ops.PROJECT_ROOT = cls._orig_gitops_root
+            agent_relay.git_ops.PROJECT_ROOT = cls._orig_gitops_root
 
         try:
             cls.temp_dir.cleanup()
@@ -159,7 +159,7 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
 
     def _create_task(self, title="Test Task", agent="claude"):
         """Helper: create a task in the temp project and return its task_id."""
-        from agy_flow.tasks import create_task
+        from agent_relay.tasks import create_task
 
         class DummyArgs:
             pass
@@ -173,7 +173,7 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
 
     def _start_task(self, task_id):
         """Helper: start a task to create a worktree."""
-        from agy_flow.tasks import start_task
+        from agent_relay.tasks import start_task
 
         class DummyArgs:
             pass
@@ -215,12 +215,12 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
         self.assertIn("full_review", record["result"])
 
     def test_dispatch_deepseek_no_task_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             dispatch("task-999", "deepseek", mock=True)
 
     def test_dispatch_codex_no_worktree_raises(self):
         task_id = self._create_task()
-        with self.assertRaises(AgyFlowError) as ctx:
+        with self.assertRaises(AgentRelayError) as ctx:
             dispatch(task_id, "codex")
         self.assertIn("has no worktree", str(ctx.exception))
 
@@ -252,7 +252,7 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
         task_id = self._create_task()
         # Create a worktree-less "Todo" task — start creates worktree but
         # we can test the "not in progress" case by calling before start
-        with self.assertRaises(AgyFlowError) as ctx:
+        with self.assertRaises(AgentRelayError) as ctx:
             dispatch(task_id, "codex")
         self.assertIn("has no worktree", str(ctx.exception))
 
@@ -263,7 +263,7 @@ class TestAdapterDispatchIsolated(unittest.TestCase):
         dispatch(task_id, "codex")
 
         # Check guard file in worktree
-        from agy_flow.config import PROJECT_ROOT, AGENTS_DIR
+        from agent_relay.config import PROJECT_ROOT, AGENTS_DIR
 
         guard_path = AGENTS_DIR / "current_task.json"
         self.assertTrue(guard_path.exists())

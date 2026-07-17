@@ -1,10 +1,10 @@
-"""Tests for manual run import — agy-flow run add."""
+"""Tests for manual run import — agent-relay run add."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.quality_gate import evaluate_task_quality
-from agy_flow.state_machine import get_task_state
-from agy_flow.adapter import add_run_record, list_runs, get_run
-import agy_flow.config
+from agent_relay.errors import AgentRelayError
+from agent_relay.quality_gate import evaluate_task_quality
+from agent_relay.state_machine import get_task_state
+from agent_relay.adapter import add_run_record, list_runs, get_run
+import agent_relay.config
 import json
 import os
 import sys
@@ -22,9 +22,9 @@ class TestManualRunImport(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        agy_flow.config.update_paths(cls.temp_path)
-        agy_flow.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
-        agy_flow.config.RUNS_DIR.mkdir(parents=True, exist_ok=True)
+        agent_relay.config.update_paths(cls.temp_path)
+        agent_relay.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+        agent_relay.config.RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -125,15 +125,15 @@ class TestManualRunImport(unittest.TestCase):
         self.assertEqual(len(runs), 1)
 
     def test_invalid_role_rejected(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             add_run_record("task-invalid", agent="claude", role="invalid")
 
     def test_invalid_status_rejected(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             add_run_record("task-invalid", agent="claude", status="invalid_status")
 
     def test_invalid_next_action_rejected(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             add_run_record("task-invalid", agent="claude", next_action="invalid")
 
     def test_run_added_quality_gate_no_block(self):

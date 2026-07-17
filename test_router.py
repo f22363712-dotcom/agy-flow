@@ -1,11 +1,11 @@
-"""Tests for agy_flow/router.py — Capability-Aware Routing v1.
+"""Tests for agent_relay/router.py — Capability-Aware Routing v1.
 
 Uses mock connector availability so tests don't depend on real CLIs or
 API keys.
 """
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.router import route_task, route_task_by_id
+from agent_relay.errors import AgentRelayError
+from agent_relay.router import route_task, route_task_by_id
 import json
 import os
 import sys
@@ -87,7 +87,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
                     default[name].update(updates)
         return default
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_write_routes_to_available_claude(self, mock_status):
         """Write task should route to claude when claude is available."""
         mock_status.return_value = self._mock_report()
@@ -97,7 +97,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertIn("codex", route["fallbacks"])
         self.assertIn("antigravity", route["fallbacks"])
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_write_fallback_when_classifier_unavailable(self, mock_status):
         """If classifier-preferred agent is unavailable, fallback to next write-capable."""
         mock_status.return_value = self._mock_report(
@@ -111,7 +111,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertIn(route["primary"], ["antigravity", "codex"])
         self.assertEqual(route["mode"], "write")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_write_all_unavailable_fallback_codex(self, mock_status):
         """When no write-capable agent is available, fallback to codex human."""
         mock_status.return_value = self._mock_report(
@@ -124,7 +124,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertEqual(route["primary"], "codex")
         self.assertIn("human", route["reason"].lower())
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_review_deepseek_available(self, mock_status):
         """Review tasks should prefer deepseek when API key is set."""
         mock_status.return_value = self._mock_report(
@@ -136,7 +136,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertEqual(route["primary"], "deepseek")
         self.assertEqual(route["mode"], "review")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_review_deepseek_unavailable_fallback(self, mock_status):
         """Review tasks should fallback to claude when deepseek unavailable."""
         mock_status.return_value = self._mock_report()
@@ -144,7 +144,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertEqual(route["primary"], "claude")
         self.assertEqual(route["mode"], "review")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_review_all_unavailable_fallback_codex(self, mock_status):
         """Review should fallback to codex when no review-capable CLI/LLM is available."""
         mock_status.return_value = self._mock_report(
@@ -157,7 +157,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         route = route_task("Code Review", context={"mode": "review"})
         self.assertEqual(route["primary"], "codex")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_handoff_routes_to_codex(self, mock_status):
         """Handoff mode should prefer codex."""
         mock_status.return_value = self._mock_report()
@@ -165,7 +165,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertEqual(route["primary"], "codex")
         self.assertEqual(route["mode"], "handoff")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_reviewers_include_all_review_capable(self, mock_status):
         """Reviewers list should contain all available review-capable agents except primary."""
         mock_status.return_value = self._mock_report(
@@ -177,7 +177,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertIn("codex", route["reviewers"])
         self.assertIn("antigravity", route["reviewers"])
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_warnings_empty_when_all_available(self, mock_status):
         """When all relevant agents are available, warnings should be empty."""
         mock_status.return_value = self._mock_report(
@@ -189,7 +189,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         warnings_text = " ".join(route.get("capability_warnings", []))
         self.assertEqual(warnings_text, "")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_route_available_deepseek_routes_to_deepseek_for_review(self, mock_status):
         """Review mode should prefer deepseek when API key is set."""
         mock_status.return_value = self._mock_report(
@@ -201,7 +201,7 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         self.assertEqual(route["primary"], "deepseek")
         self.assertEqual(route["mode"], "review")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_route_output_contains_required_keys(self, mock_status):
         """Route result must have all required keys."""
         mock_status.return_value = self._mock_report()
@@ -219,11 +219,11 @@ class TestCapabilityAwareRouting(unittest.TestCase):
         for key in required:
             self.assertIn(key, route, f"Missing required key: {key}")
 
-    @patch("agy_flow.router._get_agents_status")
+    @patch("agent_relay.router._get_agents_status")
     def test_route_task_by_id_no_board_raises(self, mock_status):
         """route_task_by_id should raise for non-existent tasks."""
-        with patch("agy_flow.tasks.parse_board_rows", return_value=[]):
-            with self.assertRaises(AgyFlowError):
+        with patch("agent_relay.tasks.parse_board_rows", return_value=[]):
+            with self.assertRaises(AgentRelayError):
                 route_task_by_id("task-999")
 
 
@@ -249,10 +249,10 @@ class TestRouteWithGatewayAPI(unittest.TestCase):
 
         # Import the module
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         # Patch paths
@@ -262,14 +262,14 @@ class TestRouteWithGatewayAPI(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         # Init
         class DummyArgs:
@@ -301,7 +301,7 @@ class TestRouteWithGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -314,13 +314,13 @@ class TestRouteWithGatewayAPI(unittest.TestCase):
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_root)
+        agent_relay.config.update_paths(cls.old_root)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
 
         try:
             cls.temp_dir.cleanup()

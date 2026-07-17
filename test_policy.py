@@ -1,8 +1,8 @@
-"""Tests for agy_flow/policy.py — Policy Guard v1."""
+"""Tests for agent_relay/policy.py — Policy Guard v1."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.state_machine import set_task_state
-from agy_flow.policy import can_dispatch, can_continue, get_policy_info
+from agent_relay.errors import AgentRelayError
+from agent_relay.state_machine import set_task_state
+from agent_relay.policy import can_dispatch, can_continue, get_policy_info
 import json
 import os
 import sys
@@ -21,9 +21,9 @@ class TestPolicyGuard(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
     @classmethod
     def tearDownClass(cls):
@@ -62,7 +62,7 @@ class TestPolicyGuard(unittest.TestCase):
         self.assertTrue(len(result.get("warnings", [])) > 0)
 
     @patch(
-        "agy_flow.policy.list_runs",
+        "agent_relay.policy.list_runs",
         return_value=[{"run_id": "r1"}, {"run_id": "r2"}, {"run_id": "r3"}],
     )
     def test_max_loop_blocks_dispatch(self, mock_runs):
@@ -73,7 +73,7 @@ class TestPolicyGuard(unittest.TestCase):
     def test_can_continue_blocked_state(self):
         set_task_state("task-policy", "blocked", reason="blocked")
         with patch(
-            "agy_flow.policy.get_run",
+            "agent_relay.policy.get_run",
             return_value={
                 "run_id": "r1",
                 "task_id": "task-policy",
@@ -87,7 +87,7 @@ class TestPolicyGuard(unittest.TestCase):
 
     def test_can_continue_blocked_parsed(self):
         with patch(
-            "agy_flow.policy.get_run",
+            "agent_relay.policy.get_run",
             return_value={
                 "run_id": "r1",
                 "task_id": "task-policy",
@@ -101,7 +101,7 @@ class TestPolicyGuard(unittest.TestCase):
 
     def test_can_continue_non_writer(self):
         with patch(
-            "agy_flow.policy.get_run",
+            "agent_relay.policy.get_run",
             return_value={
                 "run_id": "r1",
                 "task_id": "task-policy",
@@ -115,7 +115,7 @@ class TestPolicyGuard(unittest.TestCase):
 
     def test_can_continue_allowed(self):
         with patch(
-            "agy_flow.policy.get_run",
+            "agent_relay.policy.get_run",
             return_value={
                 "run_id": "r1",
                 "task_id": "task-policy",
@@ -124,7 +124,7 @@ class TestPolicyGuard(unittest.TestCase):
                 "parsed_output": {"status": "completed", "next_action": "review"},
             },
         ):
-            with patch("agy_flow.policy.list_runs", return_value=[{"run_id": "r1"}]):
+            with patch("agent_relay.policy.list_runs", return_value=[{"run_id": "r1"}]):
                 result = can_continue("r1")
                 self.assertTrue(result["allowed"])
 
@@ -137,7 +137,7 @@ class TestPolicyGuard(unittest.TestCase):
         self.assertIn("can_dispatch_new", info)
 
     def test_can_continue_missing_run(self):
-        with patch("agy_flow.policy.get_run", return_value=None):
+        with patch("agent_relay.policy.get_run", return_value=None):
             result = can_continue("run-nonexistent")
             self.assertFalse(result["allowed"])
 

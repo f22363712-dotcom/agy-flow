@@ -1,11 +1,11 @@
-"""Tests for agy_flow/connectors.py — Agent Connector v0.
+"""Tests for agent_relay/connectors.py — Agent Connector v0.
 
 All tests mock PATH / environment variables so no real CLI or API keys
 are required.
 """
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.connectors import (
+from agent_relay.errors import AgentRelayError
+from agent_relay.connectors import (
     DeepSeekConnector,
     ClaudeConnector,
     CodexConnector,
@@ -159,7 +159,7 @@ class TestConnectorUnit(unittest.TestCase):
         self.assertIsInstance(get_connector("gemini"), GeminiConnector)
 
     def test_get_connector_invalid(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             get_connector("nonexistent")
 
     def test_get_all_connectors(self):
@@ -221,7 +221,7 @@ class TestConnectorCapabilities(unittest.TestCase):
     """Test capabilities metadata across all built-in connectors."""
 
     def test_all_have_capabilities(self):
-        from agy_flow.connectors import AGENT_META
+        from agent_relay.connectors import AGENT_META
 
         for name in ("deepseek", "claude", "codex", "antigravity", "gemini"):
             self.assertIn(name, AGENT_META)

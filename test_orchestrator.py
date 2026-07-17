@@ -1,10 +1,10 @@
-"""Tests for agy_flow/orchestrator.py — Auto Dispatch Loop v1.
+"""Tests for agent_relay/orchestrator.py — Auto Dispatch Loop v1.
 
 All tests use mocked connector availability to avoid real CLIs/API keys.
 """
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.orchestrator import auto_dispatch_task
+from agent_relay.errors import AgentRelayError
+from agent_relay.orchestrator import auto_dispatch_task
 import json
 import os
 import sys
@@ -90,14 +90,14 @@ class TestAutoDispatch(unittest.TestCase):
 
     # Patch the internal functions that auto_dispatch_task calls
     @patch(
-        "agy_flow.orchestrator.adapter_dispatch",
+        "agent_relay.orchestrator.adapter_dispatch",
         return_value={
             "status": "success",
             "run_id": "run-test",
             "result": {"summary": "ok"},
         },
     )
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_success(self, mock_route, mock_adapter):
         """Happy path: route -> adapter_dispatch succeeds."""
         mock_route.return_value = {
@@ -118,10 +118,10 @@ class TestAutoDispatch(unittest.TestCase):
         )
 
     @patch(
-        "agy_flow.orchestrator.adapter_dispatch",
-        side_effect=AgyFlowError("Not available"),
+        "agent_relay.orchestrator.adapter_dispatch",
+        side_effect=AgentRelayError("Not available"),
     )
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_fallback(self, mock_route, mock_adapter):
         """When primary fails, fallback to next candidate."""
         mock_route.return_value = {
@@ -142,7 +142,7 @@ class TestAutoDispatch(unittest.TestCase):
                     "run_id": "run-codex",
                     "result": {"instruction": "hand off"},
                 }
-            raise AgyFlowError("Not available")
+            raise AgentRelayError("Not available")
 
         mock_adapter.side_effect = adapter_dispatch_side_effect
 
@@ -154,9 +154,9 @@ class TestAutoDispatch(unittest.TestCase):
         self.assertEqual(result["attempts"][1]["agent"], "codex")
 
     @patch(
-        "agy_flow.orchestrator.adapter_dispatch", side_effect=AgyFlowError("All fail")
+        "agent_relay.orchestrator.adapter_dispatch", side_effect=AgentRelayError("All fail")
     )
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_all_fail(self, mock_route, mock_adapter):
         """When all candidates fail, return failed status."""
         mock_route.return_value = {
@@ -173,7 +173,7 @@ class TestAutoDispatch(unittest.TestCase):
         self.assertIsNone(result["selected_agent"])
         self.assertEqual(len(result["attempts"]), 2)
 
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_dry_run(self, mock_route):
         """Dry run should not call adapter_dispatch."""
         mock_route.return_value = {
@@ -192,8 +192,8 @@ class TestAutoDispatch(unittest.TestCase):
         for attempt in result["attempts"]:
             self.assertEqual(attempt["status"], "dry_run")
 
-    @patch("agy_flow.orchestrator.adapter_dispatch")
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.adapter_dispatch")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_mock_deepseek(self, mock_route, mock_adapter):
         """Mock mode passes through to adapter."""
         mock_adapter.return_value = {
@@ -218,14 +218,14 @@ class TestAutoDispatch(unittest.TestCase):
         )
 
     @patch(
-        "agy_flow.orchestrator.adapter_dispatch",
+        "agent_relay.orchestrator.adapter_dispatch",
         return_value={
             "status": "handoff",
             "run_id": "run-handoff",
             "result": {"instruction": "Open worktree in Codex"},
         },
     )
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_codex_human(self, mock_route, mock_adapter):
         """Human-in-loop codex dispatch returns handoff status."""
         mock_route.return_value = {
@@ -242,7 +242,7 @@ class TestAutoDispatch(unittest.TestCase):
         self.assertEqual(result["selected_agent"], "codex")
         self.assertEqual(result["attempts"][0]["status"], "handoff")
 
-    @patch("agy_flow.orchestrator.route_task_by_id")
+    @patch("agent_relay.orchestrator.route_task_by_id")
     def test_auto_dispatch_result_has_all_keys(self, mock_route):
         """Orchestration record must contain all required fields."""
         mock_route.return_value = {
@@ -285,10 +285,10 @@ class TestAutoDispatchWithGatewayAPI(unittest.TestCase):
 
         # Import module
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         # Patch paths
@@ -298,14 +298,14 @@ class TestAutoDispatchWithGatewayAPI(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         class DummyArgs:
             pass
@@ -333,7 +333,7 @@ class TestAutoDispatchWithGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -345,12 +345,12 @@ class TestAutoDispatchWithGatewayAPI(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
-        import agy_flow.config
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_root)
-        import agy_flow.git_ops
+        agent_relay.config.update_paths(cls.old_root)
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:

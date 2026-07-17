@@ -1,7 +1,7 @@
-"""Tests for agy_flow/workspaces.py — Workspace Registry."""
+"""Tests for agent_relay/workspaces.py — Workspace Registry."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.workspaces import (
+from agent_relay.errors import AgentRelayError
+from agent_relay.workspaces import (
     list_workspaces,
     get_workspace,
     add_workspace,
@@ -9,7 +9,7 @@ from agy_flow.workspaces import (
     set_default,
     resolve_workspace,
 )
-import agy_flow.config
+import agent_relay.config
 import json
 import os
 import sys
@@ -26,8 +26,8 @@ class TestWorkspaces(unittest.TestCase):
     def setUp(self):
         self._td = tempfile.TemporaryDirectory()
         self._tp = Path(self._td.name).resolve()
-        agy_flow.config.update_paths(self._tp)
-        agy_flow.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+        agent_relay.config.update_paths(self._tp)
+        agent_relay.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     def tearDown(self):
         try:
@@ -58,17 +58,17 @@ class TestWorkspaces(unittest.TestCase):
         self.assertEqual(result["name"], "test-get")
 
     def test_get_unknown_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             get_workspace("nonexistent")
 
     def test_remove_workspace(self):
         add_workspace("to-remove", str(self._tp / "remove"))
         remove_workspace("to-remove")
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             get_workspace("to-remove")
 
     def test_remove_unknown_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             remove_workspace("nonexistent")
 
     def test_set_default(self):
@@ -85,7 +85,7 @@ class TestWorkspaces(unittest.TestCase):
         self.assertIsNone(name)
 
     def test_add_with_spaces_raises(self):
-        with self.assertRaises(AgyFlowError):
+        with self.assertRaises(AgentRelayError):
             add_workspace("bad name", str(self._tp / "bad"))
 
 
@@ -104,10 +104,10 @@ class TestWorkspacesWithGatewayAPI(unittest.TestCase):
         cls._temp_path = Path(cls._temp_dir.name).resolve()
 
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         cls.old_root = cls.mod.PROJECT_ROOT
@@ -116,14 +116,14 @@ class TestWorkspacesWithGatewayAPI(unittest.TestCase):
         cls.mod.TASKS_DIR = cls.mod.AGENTS_DIR / "tasks"
         cls.mod.BOARD_FILE = cls.mod.TASKS_DIR / "board.md"
 
-        import agy_flow.config as cfg_mod
+        import agent_relay.config as cfg_mod
 
         cfg_mod.update_paths(cls._temp_path)
 
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        cls.old_git_root = agy_flow.git_ops.PROJECT_ROOT
-        agy_flow.git_ops.PROJECT_ROOT = cls._temp_path
+        cls.old_git_root = agent_relay.git_ops.PROJECT_ROOT
+        agent_relay.git_ops.PROJECT_ROOT = cls._temp_path
 
         class DummyArgs:
             pass
@@ -151,7 +151,7 @@ class TestWorkspacesWithGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -163,12 +163,12 @@ class TestWorkspacesWithGatewayAPI(unittest.TestCase):
         cls.server.server_close()
         cls.thread.join()
         cls.mod.PROJECT_ROOT = cls.old_root
-        import agy_flow.config as cfg_mod
+        import agent_relay.config as cfg_mod
 
         cfg_mod.update_paths(cls.old_root)
-        import agy_flow.git_ops
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_git_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_git_root
         try:
             cls._temp_dir.cleanup()
         except Exception:

@@ -20,17 +20,17 @@ def get_free_port():
     return port
 
 
-# Dynamically import agy-flow.py due to hyphen in filename
+# Dynamically import agent-relay.py due to hyphen in filename
 project_root = Path(__file__).parent.resolve()
 spec = importlib.util.spec_from_file_location(
-    "agy_flow_main", project_root / "agy-flow.py"
+    "agent_relay_main", project_root / "agent-relay.py"
 )
-agy_flow_mod = importlib.util.module_from_spec(spec)
-sys.modules["agy_flow_main"] = agy_flow_mod
-spec.loader.exec_module(agy_flow_mod)
+agent_relay_mod = importlib.util.module_from_spec(spec)
+sys.modules["agent_relay_main"] = agent_relay_mod
+spec.loader.exec_module(agent_relay_mod)
 
 
-class TestAgyFlowServer(unittest.TestCase):
+class TestAgentRelayServer(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Prevent any VS Code launch during tests
@@ -44,32 +44,32 @@ class TestAgyFlowServer(unittest.TestCase):
         cls.old_cwd = os.getcwd()
         os.chdir(cls.temp_path)
 
-        # Patch paths inside the imported agy-flow module
-        cls.old_project_root = agy_flow_mod.PROJECT_ROOT
-        agy_flow_mod.PROJECT_ROOT = cls.temp_path
-        agy_flow_mod.AGENTS_DIR = cls.temp_path / ".agents"
-        agy_flow_mod.TASKS_DIR = agy_flow_mod.AGENTS_DIR / "tasks"
-        agy_flow_mod.TEMPLATES_DIR = agy_flow_mod.AGENTS_DIR / "templates"
-        agy_flow_mod.LOGS_DIR = agy_flow_mod.AGENTS_DIR / "logs"
-        agy_flow_mod.CONFIG_FILE = agy_flow_mod.AGENTS_DIR / "config.json"
-        agy_flow_mod.BOARD_FILE = agy_flow_mod.TASKS_DIR / "board.md"
-        agy_flow_mod.COSTS_FILE = agy_flow_mod.AGENTS_DIR / "costs.json"
+        # Patch paths inside the imported agent-relay module
+        cls.old_project_root = agent_relay_mod.PROJECT_ROOT
+        agent_relay_mod.PROJECT_ROOT = cls.temp_path
+        agent_relay_mod.AGENTS_DIR = cls.temp_path / ".agents"
+        agent_relay_mod.TASKS_DIR = agent_relay_mod.AGENTS_DIR / "tasks"
+        agent_relay_mod.TEMPLATES_DIR = agent_relay_mod.AGENTS_DIR / "templates"
+        agent_relay_mod.LOGS_DIR = agent_relay_mod.AGENTS_DIR / "logs"
+        agent_relay_mod.CONFIG_FILE = agent_relay_mod.AGENTS_DIR / "config.json"
+        agent_relay_mod.BOARD_FILE = agent_relay_mod.TASKS_DIR / "board.md"
+        agent_relay_mod.COSTS_FILE = agent_relay_mod.AGENTS_DIR / "costs.json"
 
-        # Patch paths inside agy_flow.config module too
-        import agy_flow.config
+        # Patch paths inside agent_relay.config module too
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.temp_path)
+        agent_relay.config.update_paths(cls.temp_path)
 
-        # Patch path inside agy_flow.git_ops module
-        import agy_flow.git_ops
+        # Patch path inside agent_relay.git_ops module
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.temp_path
+        agent_relay.git_ops.PROJECT_ROOT = cls.temp_path
 
         # Initialize the project in the temp directory
         class DummyArgs:
             pass
 
-        agy_flow_mod.init_project(DummyArgs())
+        agent_relay_mod.init_project(DummyArgs())
 
         # Overwrite worktrees_dir in the temp config to avoid directory
         # collisions
@@ -88,13 +88,13 @@ class TestAgyFlowServer(unittest.TestCase):
             agent = "codex"
             desc = "Testing write API"
 
-        agy_flow_mod.create_task(DummyCreateArgs())
+        agent_relay_mod.create_task(DummyCreateArgs())
 
         class Args:
             host = "127.0.0.1"
             port = get_free_port()
 
-        cls.server = HTTPServer((Args.host, Args.port), agy_flow_mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer((Args.host, Args.port), agent_relay_mod.AgentRelayHTTPHandler)
         cls.server_thread = threading.Thread(target=cls.server.serve_forever)
         cls.server_thread.daemon = True
         cls.server_thread.start()
@@ -108,24 +108,24 @@ class TestAgyFlowServer(unittest.TestCase):
 
         # Restore directory and cleanup
         os.chdir(cls.old_cwd)
-        agy_flow_mod.PROJECT_ROOT = cls.old_project_root
-        agy_flow_mod.AGENTS_DIR = cls.old_project_root / ".agents"
-        agy_flow_mod.TASKS_DIR = agy_flow_mod.AGENTS_DIR / "tasks"
-        agy_flow_mod.TEMPLATES_DIR = agy_flow_mod.AGENTS_DIR / "templates"
-        agy_flow_mod.LOGS_DIR = agy_flow_mod.AGENTS_DIR / "logs"
-        agy_flow_mod.CONFIG_FILE = agy_flow_mod.AGENTS_DIR / "config.json"
-        agy_flow_mod.BOARD_FILE = agy_flow_mod.TASKS_DIR / "board.md"
-        agy_flow_mod.COSTS_FILE = agy_flow_mod.AGENTS_DIR / "costs.json"
+        agent_relay_mod.PROJECT_ROOT = cls.old_project_root
+        agent_relay_mod.AGENTS_DIR = cls.old_project_root / ".agents"
+        agent_relay_mod.TASKS_DIR = agent_relay_mod.AGENTS_DIR / "tasks"
+        agent_relay_mod.TEMPLATES_DIR = agent_relay_mod.AGENTS_DIR / "templates"
+        agent_relay_mod.LOGS_DIR = agent_relay_mod.AGENTS_DIR / "logs"
+        agent_relay_mod.CONFIG_FILE = agent_relay_mod.AGENTS_DIR / "config.json"
+        agent_relay_mod.BOARD_FILE = agent_relay_mod.TASKS_DIR / "board.md"
+        agent_relay_mod.COSTS_FILE = agent_relay_mod.AGENTS_DIR / "costs.json"
 
-        # Restore agy_flow.config module paths too
-        import agy_flow.config
+        # Restore agent_relay.config module paths too
+        import agent_relay.config
 
-        agy_flow.config.update_paths(cls.old_project_root)
+        agent_relay.config.update_paths(cls.old_project_root)
 
-        # Restore agy_flow.git_ops module paths too
-        import agy_flow.git_ops
+        # Restore agent_relay.git_ops module paths too
+        import agent_relay.git_ops
 
-        agy_flow.git_ops.PROJECT_ROOT = cls.old_project_root
+        agent_relay.git_ops.PROJECT_ROOT = cls.old_project_root
 
         try:
             cls.temp_dir.cleanup()
@@ -312,7 +312,7 @@ class TestAgyFlowServer(unittest.TestCase):
             self.assertEqual(res.status, 200)
             self.assertIn("text/html", res.headers.get("Content-Type"))
             html_content = res.read().decode("utf-8")
-            self.assertIn("agy-flow | 协同看板", html_content)
+            self.assertIn("agent-relay | 协同看板", html_content)
 
         # Test GET /dashboard
         req_dash = urllib.request.Request(f"{self.base_url}/dashboard")

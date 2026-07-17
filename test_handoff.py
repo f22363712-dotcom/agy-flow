@@ -1,8 +1,8 @@
-"""Tests for agy_flow/handoff.py — lease_writer and whoami."""
+"""Tests for agent_relay/handoff.py — lease_writer and whoami."""
 
-from agy_flow.errors import AgyFlowError
-from agy_flow.handoff import lease_writer, whoami, assign_current_task_agent
-import agy_flow.config
+from agent_relay.errors import AgentRelayError
+from agent_relay.handoff import lease_writer, whoami, assign_current_task_agent
+import agent_relay.config
 import json
 import os
 import sys
@@ -20,8 +20,8 @@ class TestLeaseWriter(unittest.TestCase):
     def setUpClass(cls):
         cls.temp_dir = tempfile.TemporaryDirectory()
         cls.temp_path = Path(cls.temp_dir.name).resolve()
-        agy_flow.config.update_paths(cls.temp_path)
-        agy_flow.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+        agent_relay.config.update_paths(cls.temp_path)
+        agent_relay.config.AGENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def tearDownClass(cls):
@@ -31,7 +31,7 @@ class TestLeaseWriter(unittest.TestCase):
             pass
 
     def _write_guard(self, data):
-        path = agy_flow.config.AGENTS_DIR / "current_task.json"
+        path = agent_relay.config.AGENTS_DIR / "current_task.json"
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def test_lease_unchanged_when_same_writer(self):
@@ -57,7 +57,7 @@ class TestLeaseWriter(unittest.TestCase):
         self.assertEqual(result["writer"], "Codex")
 
         # Verify guard file was updated
-        p2 = agy_flow.config.AGENTS_DIR / "current_task.json"
+        p2 = agent_relay.config.AGENTS_DIR / "current_task.json"
         guard = json.loads(p2.read_text(encoding="utf-8"))
         self.assertEqual(guard.get("writer"), "Codex")
         self.assertEqual(guard.get("role"), "writer")
@@ -95,7 +95,7 @@ class TestLeaseWriter(unittest.TestCase):
         self.assertEqual(result["writer"], "Codex")
 
         # Verify guard
-        path = agy_flow.config.AGENTS_DIR / "current_task.json"
+        path = agent_relay.config.AGENTS_DIR / "current_task.json"
         guard = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(guard.get("writer"), "Codex")
 
@@ -128,7 +128,7 @@ class TestLeaseWriter(unittest.TestCase):
             }
         )
         lease_writer("claude", force=True)
-        path = agy_flow.config.AGENTS_DIR / "current_task.json"
+        path = agent_relay.config.AGENTS_DIR / "current_task.json"
         guard = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(guard.get("agent"), "claude")
         self.assertEqual(guard.get("writer"), "claude")
@@ -152,7 +152,7 @@ class TestLeaseWriter(unittest.TestCase):
         self.assertTrue(info["can_write"])
 
     def test_whoami_no_guard(self):
-        guard_path = agy_flow.config.AGENTS_DIR / "current_task.json"
+        guard_path = agent_relay.config.AGENTS_DIR / "current_task.json"
         if guard_path.exists():
             guard_path.unlink()
         info = whoami()
@@ -170,7 +170,7 @@ class TestLeaseWriter(unittest.TestCase):
             }
         )
         lease_writer("claude", force=True, reason="Need Claude for backend work")
-        path = agy_flow.config.AGENTS_DIR / "current_task.json"
+        path = agent_relay.config.AGENTS_DIR / "current_task.json"
         guard = json.loads(path.read_text(encoding="utf-8"))
         # reason is in the result not the guard — check the function call
         # didn't fail
@@ -192,10 +192,10 @@ class TestWhoamiWithGatewayAPI(unittest.TestCase):
         cls.temp_path = Path(cls.temp_dir.name).resolve()
 
         spec = importlib.util.spec_from_file_location(
-            "agy_flow_main", project_root / "agy-flow.py"
+            "agent_relay_main", project_root / "agent-relay.py"
         )
         cls.mod = importlib.util.module_from_spec(spec)
-        sys.modules["agy_flow_main"] = cls.mod
+        sys.modules["agent_relay_main"] = cls.mod
         spec.loader.exec_module(cls.mod)
 
         cls.old_root = cls.mod.PROJECT_ROOT
@@ -207,10 +207,10 @@ class TestWhoamiWithGatewayAPI(unittest.TestCase):
         # Patch internal module paths via the imported module
         import importlib
 
-        cfg_mod = importlib.import_module("agy_flow.config")
+        cfg_mod = importlib.import_module("agent_relay.config")
         cfg_mod.update_paths(cls.temp_path)
 
-        git_mod = importlib.import_module("agy_flow.git_ops")
+        git_mod = importlib.import_module("agent_relay.git_ops")
         cls.old_git_root = git_mod.PROJECT_ROOT
         git_mod.PROJECT_ROOT = cls.temp_path
 
@@ -240,7 +240,7 @@ class TestWhoamiWithGatewayAPI(unittest.TestCase):
             return p
 
         cls.port = free_port()
-        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgyFlowHTTPHandler)
+        cls.server = HTTPServer(("127.0.0.1", cls.port), cls.mod.AgentRelayHTTPHandler)
         cls.thread = threading.Thread(target=cls.server.serve_forever)
         cls.thread.daemon = True
         cls.thread.start()
@@ -254,8 +254,8 @@ class TestWhoamiWithGatewayAPI(unittest.TestCase):
         cls.mod.PROJECT_ROOT = cls.old_root
         import importlib
 
-        importlib.import_module("agy_flow.config").update_paths(cls.old_root)
-        importlib.import_module("agy_flow.git_ops").PROJECT_ROOT = cls.old_git_root
+        importlib.import_module("agent_relay.config").update_paths(cls.old_root)
+        importlib.import_module("agent_relay.git_ops").PROJECT_ROOT = cls.old_git_root
         try:
             cls.temp_dir.cleanup()
         except Exception:

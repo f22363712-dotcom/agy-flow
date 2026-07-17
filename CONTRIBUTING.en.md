@@ -1,6 +1,6 @@
-# Contributing to agy-flow
+# Contributing to agent-relay
 
-Thank you for considering contributing to agy-flow! 🎉
+Thank you for considering contributing to agent-relay! 🎉
 
 ## Code of Conduct
 
@@ -56,8 +56,8 @@ Types: `feat` / `fix` / `docs` / `test` / `refactor` / `chore`
 ## Project Structure
 
 ```
-agy-flow/
-├── agy_flow/           # Core library
+agent-relay/
+├── agent_relay/           # Core library
 │   ├── mcp_server.py   # MCP Server
 │   ├── handoff.py      # Handoff protocol
 │   ├── router.py       # Routing

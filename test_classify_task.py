@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-from agy_flow_classify import classify_task, plan_task
+from agent_relay_classify import classify_task, plan_task
 
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, str(Path(__file__).parent))
