@@ -238,3 +238,38 @@ def save_costs(costs):
     """Saves costs dict back to costs.json."""
     with open(COSTS_FILE, "w", encoding="utf-8") as f:
         json.dump(costs, f, indent=4)
+
+
+def get_effective_config():
+    """Build and validate the effective config.
+
+    Merges DEFAULT_CONFIG + project config + runtime probe results,
+    validates, and strips secrets.  Safe to expose over MCP.
+
+    Returns
+    -------
+    dict with keys ``ok``, ``config``, ``warnings``.
+    """
+    from agent_relay.config_schema import (
+        build_effective_config,
+        validate_project_config,
+    )
+
+    project_cfg = get_config() if CONFIG_FILE.exists() else {}
+    warnings = validate_project_config(project_cfg)
+
+    probes = None
+    try:
+        from agent_relay.connectors import probe_all
+
+        raw_probes = probe_all()
+        probes = {p["name"]: p for p in raw_probes}
+    except Exception:
+        pass
+
+    effective = build_effective_config(project_cfg, probes)
+    return {
+        "ok": len(warnings) == 0,
+        "config": effective,
+        "warnings": warnings,
+    }

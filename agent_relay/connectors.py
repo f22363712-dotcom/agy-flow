@@ -257,7 +257,8 @@ def probe_agent(name):
     Returns
     -------
     dict with keys: ``name``, ``kind``, ``display_name``, ``available``,
-    ``reason``, ``capabilities``, ``config`` (merged from agent_registry).
+    ``reason``, ``capabilities``, ``config``, ``executable_path``,
+    ``supports_cli`` (merged from agent_registry).
     """
     connector = get_connector(name)
     avail = connector.is_available()
@@ -265,13 +266,23 @@ def probe_agent(name):
     config_entry = registry.get(name, {})
     meta = AGENT_META.get(name, {})
     is_cli = connector.kind == "cli"
+
+    # Resolve executable path
+    exec_path = None
+    cli_name = config_entry.get("cli_command") or name
+    # Check if this agent supports CLI launch
+    if connector.kind in ("cli", "human"):  # human (codex) may also have CLI
+        exec_path = _find_cli(cli_name)
+
     return {
         "name": name,
         "kind": connector.kind,
         "display_name": meta.get("display_name", name.capitalize()),
         "available": avail["available"],
         "reason": avail["reason"],
-        "executable": is_cli and avail["available"],
+        "executable_path": str(exec_path) if exec_path else None,
+        "executable": exec_path is not None,  # backwards compat
+        "supports_cli": exec_path is not None,
         "capabilities": config_entry.get("capabilities", meta.get("capabilities", [])),
         "supports_worktree": config_entry.get(
             "supports_worktree", meta.get("supports_worktree", False)
@@ -310,6 +321,8 @@ def agents_report():
             "available": probe.get("available", False),
             "reason": probe.get("reason", "No connector registered"),
             "executable": probe.get("executable", False),
+            "executable_path": probe.get("executable_path"),
+            "supports_cli": probe.get("supports_cli", False),
             "capabilities": entry.get("capabilities", probe.get("capabilities", [])),
             "supports_worktree": entry.get(
                 "supports_worktree", probe.get("supports_worktree", False)

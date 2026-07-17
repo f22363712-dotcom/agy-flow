@@ -238,6 +238,12 @@ _RESOURCE_TEMPLATES = [
 
 _STATIC_RESOURCES = [
     {
+        "uri": "config://agent-relay",
+        "name": "Agent-Relay Effective Config",
+        "description": "Merged configuration with runtime probe results, secrets stripped.",
+        "mimeType": "application/json",
+    },
+    {
         "uri": "handoff://history",
         "name": "Handoff History",
         "description": "Recent handoff history across all tasks.",
@@ -317,7 +323,9 @@ def _require(args, key, label=None):
 
 def _validate_task_id(task_id):
     if not _RE_TASK_ID.match(str(task_id)):
-        raise AgentRelayError(f"Invalid task_id format: '{task_id}'. Expected task-NNN.")
+        raise AgentRelayError(
+            f"Invalid task_id format: '{task_id}'. Expected task-NNN."
+        )
     return task_id
 
 
@@ -608,6 +616,21 @@ def _handle_read_resource(uri: str) -> dict:
                     "text": json.dumps(
                         [asdict(e) for e in entries], ensure_ascii=False
                     ),
+                }
+            ]
+        }
+
+    # config://agent-relay
+    if uri == "config://agent-relay":
+        from agent_relay.config import get_effective_config
+
+        effective = get_effective_config()
+        return {
+            "contents": [
+                {
+                    "uri": uri,
+                    "mimeType": "application/json",
+                    "text": json.dumps(effective, ensure_ascii=False),
                 }
             ]
         }
